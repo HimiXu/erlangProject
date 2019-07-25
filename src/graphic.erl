@@ -3,6 +3,8 @@
 -compile(export_all).
 -include_lib("wx/include/wx.hrl").
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%test
 test() ->
 	Pid= spawn_link(fun()->init([]) end),
 	CitiesData = [alive, alive, alive, alive, alive, destroyed, destroyed, destroyed, alive, alive],
@@ -11,16 +13,19 @@ test() ->
 loopTest(Pid, Iteration, CitiesData) ->
 	Pid ! frameDateStart,
 	Pid ! {citiesData, CitiesData},
-	Pid ! {missaleData, {interceptor, Iteration, Iteration, 30}},
-	Pid ! {missaleData, {enemyMissile,Iteration+70, Iteration+70, 70}},
-	Pid ! {explosionsData, {explode, Iteration+130, Iteration+130}},
+	%%Pid ! {missaleData, {interceptor, Iteration, Iteration, 30}},
+	%%Pid ! {missaleData, {enemyMissile,Iteration+70, Iteration+70, 70}},
+	%%Pid ! {explosionsData, {explode, Iteration+130, Iteration+130}},
 	Pid ! frameDataEnd,
-	timer:sleep(1000),
+	timer:sleep(10),
 	loopTest(Pid, Iteration+1, CitiesData).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 start_link()->
 	gen_fsm:start_link(?MODULE,[],[]).
 
+%create the GUI
 init([])->
 	wx:new(),
 	WxEnv = wx:get_env(),
@@ -45,7 +50,7 @@ init([])->
 %in this function we update the graphics
 frameLoop (WxEnv, BackgroundBitmap, Canvas, CitiesImages, MissileAndExplosionImages) ->
 	ClientDC = wxClientDC:new(Canvas),
-	BufferDC = wxBufferedDC:new(ClientDC), %%TODO: understand the function of this buffer
+	BufferDC = wxBufferedDC:new(ClientDC),
 	wxDC:drawBitmap(BufferDC, BackgroundBitmap, {0,0}),
   receive
 		frameDateStart ->
@@ -55,23 +60,24 @@ frameLoop (WxEnv, BackgroundBitmap, Canvas, CitiesImages, MissileAndExplosionIma
 	wxClientDC:destroy(ClientDC),
 	frameLoop(WxEnv, BackgroundBitmap, Canvas, CitiesImages, MissileAndExplosionImages).
 
+
+%gets all the  data needed for the next frame
 updateDataLoop(WxEnv, BufferDC, CitiesImages, MissileAndExplosionImages) ->
 	receive
 		{citiesData, CitiesData} ->
-			%%spawn_link(fun()->drawCities(WxEnv, BufferDC, CitiesImages, CitiesData, 10) end), %%TODO: check the function of this. maybe link is not needed.
+			%spawn_link(fun()->drawCities(WxEnv, BufferDC, CitiesImages, CitiesData, 10) end), %%TODO: check if drawing to bufferDC can be done in parallel
 			drawCities (WxEnv, BufferDC, CitiesImages, CitiesData, 10),
 			updateDataLoop (WxEnv, BufferDC, CitiesImages, MissileAndExplosionImages);
 		{missaleData, MissileLocationData} ->
-			%%spawn_link(fun()->drawMissiles (WxEnv, BufferDC, MissileAndExplosionImages, MissileLocationData) end),
+			%spawn_link(fun()->drawMissiles (WxEnv, BufferDC, MissileAndExplosionImages, MissileLocationData) end),
 			drawMissiles (WxEnv, BufferDC, MissileAndExplosionImages, MissileLocationData),
 			updateDataLoop (WxEnv, BufferDC, CitiesImages, MissileAndExplosionImages);
 		{explosionsData,ExplosionLocationData} ->
-			%%spawn_link(fun()->drawExplosions(WxEnv, BufferDC, MissileAndExplosionImages, ExplosionLocationData) end),
+			%spawn_link(fun()->drawExplosions(WxEnv, BufferDC, MissileAndExplosionImages, ExplosionLocationData) end),
 			drawExplosions(WxEnv, BufferDC, MissileAndExplosionImages, ExplosionLocationData),
 			updateDataLoop (WxEnv, BufferDC, CitiesImages, MissileAndExplosionImages);
-		frameDataEnd -> frameDataEnd %%TODO: maybe we should ensure that all the processes finished their work their work.
+		frameDataEnd -> frameDataEnd %%TODO: maybe we should ensure that all the processes finished their work their work if we do in in parallel.
 	end.
-
 
 
 %draw Cities function
@@ -108,7 +114,6 @@ drawExplosions(WxEnv, BufferDC, MissileAndExplosionImages, {ExplosionType, X, Y}
 		interception ->
 			wxDC:drawBitmap(BufferDC, element(3,MissileAndExplosionImages), {X, Y});
 		explode ->
-			io:format("key",[]),
 			wxDC:drawBitmap(BufferDC, element(4,MissileAndExplosionImages), {X,Y})
 	end.
 
