@@ -12,14 +12,15 @@
 %% API
 -export([test/0]).
 
-test()->
+test() ->
   missile_server:start_link(),
-  missile:start_link({0, {0,0}, {10,-7}, {0,1000}, testserver}),
+  {M1, _, _} = missile:start_link({0, {0, 0}, {10, -7}, {0, 1000}, testserver, make_ref()}),
+  {M2, _, _} = missile:start_link({0, {0, 0}, {0, -7}, {100, 1000}, testserver, make_ref()}),
   startServerClock(),
-  startMissileClock().
+  startMissileClock([M1, M2]).
 
 startServerClock() ->
-  spawn(fun F()-> timer:sleep(500), missile_server:tick(), F() end).
+  spawn(fun F() -> timer:sleep(500), missile_server:tick(), F() end).
 
-startMissileClock() ->
-  spawn(fun F()-> timer:sleep(1000), missile:update(1), F() end).
+startMissileClock(Refs) ->
+  spawn(fun F() -> timer:sleep(1000), lists:foreach(fun(Ref) -> missile:update(Ref, 1) end, Refs), F() end).
