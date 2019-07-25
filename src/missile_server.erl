@@ -25,30 +25,21 @@ init(_Args) ->
   {ok, #{}}.
 
 handle_cast(tick, M) ->
-  MissileInfo = maps:get(missile, M, empty),
-  if MissileInfo =/= empty ->
-    {_, Count} = MissileInfo,
-    if Count =:= 10 ->
-      NewM = maps:remove(missile, M),
-      missile:collision(),
-      io:format("Missile exploded on server~n"),
-      {noreply, NewM};
-      true ->
-        {noreply, M}
-    end;
-    true ->
-      {noreply, M}
-  end;
+  ListM = maps:to_list(M),
+  Collisions = [RefA || {RefA,{PositionA,_}} <- ListM, {RefB,{PositionB,_}}<- ListM, RefA =/= RefB, PositionA =:= PositionB ],
+  NewM = lists:foldl(fun(ToRemove,Map) -> maps:remove(ToRemove,Map) end, M, Collisions),
+  lists:foreach(fun(Ref) -> missile:collision(Ref), io:format("Missile ~p exploded on server~n",[Ref]) end,Collisions),
+  {noreply,NewM};
 
-handle_cast({updateMissile, NextPosition}, M) ->
-  MissileInfo = maps:get(missile, M, empty),
+handle_cast({updateMissile, NextPosition, Ref}, M) ->
+  MissileInfo = maps:get(Ref, M, empty),
   if MissileInfo =:= empty ->
     Count = 0;
     true ->
       {_, Count} = MissileInfo
   end,
-  NewM = M#{missile => {NextPosition, Count + 1}},
-  io:format("Missile new position on server is: ~p, Current count: ~p~n", [NextPosition, Count + 1]),
+  NewM = M#{Ref => {NextPosition, Count + 1}},
+  io:format("Missile ~p new position on server is: ~p, Current count: ~p~n", [Ref, NextPosition, Count + 1]),
   {noreply, NewM}.
 
 handle_call(call, _From, M) ->
