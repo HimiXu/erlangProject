@@ -13,7 +13,7 @@ loopTest(Pid, Iteration, CitiesData) ->
 	Pid ! {citiesData, CitiesData},
 	Pid ! {missaleData, {interceptor, Iteration, Iteration, 30}},
 	Pid ! {missaleData, {enemyMissile,Iteration+70, Iteration+70, 70}},
-	Pid ! {explosionsData, {explode, Iteration+120, Iteration+120}},
+	Pid ! {explosionsData, {explode, Iteration+130, Iteration+130}},
 	Pid ! frameDataEnd,
 	timer:sleep(1000),
 	loopTest(Pid, Iteration+1, CitiesData).
@@ -49,7 +49,6 @@ frameLoop (WxEnv, BackgroundBitmap, Canvas, CitiesImages, MissileAndExplosionIma
 	wxDC:drawBitmap(BufferDC, BackgroundBitmap, {0,0}),
   receive
 		frameDateStart ->
-			io:format("key",[]),
 			updateDataLoop(WxEnv,BufferDC, CitiesImages, MissileAndExplosionImages)
 	end,
 	wxBufferedDC:destroy(BufferDC),
@@ -59,18 +58,18 @@ frameLoop (WxEnv, BackgroundBitmap, Canvas, CitiesImages, MissileAndExplosionIma
 updateDataLoop(WxEnv, BufferDC, CitiesImages, MissileAndExplosionImages) ->
 	receive
 		{citiesData, CitiesData} ->
-			spawn_link(fun()->drawCities(WxEnv, BufferDC, CitiesImages, CitiesData, 10) end), %%TODO: check the function of this. maybe link is not needed.
-			%%drawCities (BufferDC, CitiesImages, CitiesData, 10),
+			%%spawn_link(fun()->drawCities(WxEnv, BufferDC, CitiesImages, CitiesData, 10) end), %%TODO: check the function of this. maybe link is not needed.
+			drawCities (WxEnv, BufferDC, CitiesImages, CitiesData, 10),
 			updateDataLoop (WxEnv, BufferDC, CitiesImages, MissileAndExplosionImages);
 		{missaleData, MissileLocationData} ->
-			spawn_link(fun()->drawMissiles (WxEnv, BufferDC, MissileAndExplosionImages, MissileLocationData) end),
-			%%drawMissiles (BufferDC, MissileAndExplosionImages, MissileLocationData),
+			%%spawn_link(fun()->drawMissiles (WxEnv, BufferDC, MissileAndExplosionImages, MissileLocationData) end),
+			drawMissiles (WxEnv, BufferDC, MissileAndExplosionImages, MissileLocationData),
 			updateDataLoop (WxEnv, BufferDC, CitiesImages, MissileAndExplosionImages);
 		{explosionsData,ExplosionLocationData} ->
-			spawn_link(fun()->drawExplosions(WxEnv, BufferDC, MissileAndExplosionImages, ExplosionLocationData) end),
-			%%drawExplosions(BufferDC, MissileAndExplosionImages, ExplosionLocationData),
+			%%spawn_link(fun()->drawExplosions(WxEnv, BufferDC, MissileAndExplosionImages, ExplosionLocationData) end),
+			drawExplosions(WxEnv, BufferDC, MissileAndExplosionImages, ExplosionLocationData),
 			updateDataLoop (WxEnv, BufferDC, CitiesImages, MissileAndExplosionImages);
-		frameDateEnd -> frameDataEnd %%TODO: maybe we should ensure that all the processes finished their work their work.
+		frameDataEnd -> frameDataEnd %%TODO: maybe we should ensure that all the processes finished their work their work.
 	end.
 
 
@@ -109,7 +108,8 @@ drawExplosions(WxEnv, BufferDC, MissileAndExplosionImages, {ExplosionType, X, Y}
 		interception ->
 			wxDC:drawBitmap(BufferDC, element(3,MissileAndExplosionImages), {X, Y});
 		explode ->
-	wxDC:drawBitmap(BufferDC, element(4,MissileAndExplosionImages), {400,400})
+			io:format("key",[]),
+			wxDC:drawBitmap(BufferDC, element(4,MissileAndExplosionImages), {X,Y})
 	end.
 
 %%returns bitmaps of the cities images
