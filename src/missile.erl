@@ -13,43 +13,73 @@
 
 %% API
 -export([start_link/1]).
--export([update/2, collision/1]).
+-export([tick/2, interception/1]).
 -export([init/1, callback_mode/0, terminate/3]).
--export([falling/3]).
+-export([falling/3, exploded/3, intercepted/3]).
 
-start_link({Angle, Acceleration, Velocity, Position, Server, Ref}) ->
+start_link({{Acceleration, Velocity, Position}, {Cities, Ground}, Ref}) ->
   Name = list_to_atom(lists:append("missile", ref_to_list(Ref))),
-  {Ref,Name,gen_statem:start_link({local, Name}, ?MODULE, {Angle, Acceleration, Velocity, Position, Server, Ref}, [])}.
+  {Ref, Name, gen_statem:start_link({local, Name}, ?MODULE, {{Acceleration, Velocity, Position}, {Cities, Ground}, Ref}, [])}.
 
-update(Ref, TimeDiff) ->
+tick(Ref, TimeDiff) ->
   Name = list_to_atom(lists:append("missile", ref_to_list(Ref))),
-  gen_statem:cast(Name, {update, TimeDiff}).
-collision(Ref) ->
+  gen_statem:cast(Name, {tick, TimeDiff}).
+interception(Ref) ->
   Name = list_to_atom(lists:append("missile", ref_to_list(Ref))),
   gen_statem:stop(Name).
 
-init({Angle, Acceleration, Velocity, Position, Server, Ref}) ->
-  {ok, falling, {Angle, Acceleration, Velocity, Position, Server, Ref}}.
+init({{Acceleration, Velocity, Position}, {Cities, Ground}, Ref}) ->
+  mclock:register(Ref),
+  {ok, falling, {{Acceleration, Velocity, Position}, {Cities, Ground}, Ref}}.
 
 callback_mode() ->
   state_functions.
-falling(cast, {update, TimeDiff}, {Angle, Acceleration, Velocity, Position, Server, Ref}) ->
+falling(cast, {tick, TimeDiff}, {{Acceleration, Velocity, Position}, {Cities, Ground}, Ref}) ->
   NextPosition = updatePosition(Velocity, Position, TimeDiff),
   NextVelocity = updateVelocity(Acceleration, Velocity, TimeDiff),
-  updateServer(NextPosition, Server, Ref),
-  io:format("Missile ~p new position is: ~p~n", [Ref, NextPosition]),
-  {next_state, falling, {Angle, Acceleration, NextVelocity, NextPosition, Server, Ref}}.
-
-terminate(_Reason, _State, {_, _, _, _, _, Ref}) ->
-  io:format("Missile ~p exploded ~n", [Ref]),
+  HitState = assesHit(NextPosition, Cities, Ground),
+  case HitState of
+    nohit -> Angle = calcAngle(Velocity),
+      NextState = falling,
+      Status = {NextState, NextVelocity, NextPosition, Angle};
+    {hitcity, CityName} -> NextState = exploded,
+      Status = {NextState, NextPosition},
+      %% TODO
+      city:hit(CityName);
+    hitground -> NextState = exploded,
+      Status = {NextState, NextPosition}
+  end,
+  %% TODO
+  node_server:updateStatus({Ref, Status}),
+  {next_state, NextState, {{Acceleration, NextVelocity, NextPosition}, {Cities, Ground}, Ref}};
+falling(cast, interception, {{Acceleration, Velocity, Position}, {Cities, Ground}, Ref}) ->
+  node_server:updateStatus({Ref, {intercepted, Position}}),
+  {next_state, intercepted, {{Acceleration, Velocity, Position}, {Cities, Ground}, Ref}}.
+exploded(enter, _State, {_, _, Ref}) ->
+  mclock:unregister(Ref),
+  {stop, exploded}.
+intercepted(enter, _State, {_, _, Ref}) ->
+  mclock:unregister(Ref),
+  {stop, intercepted}.
+terminate(Reason, _State, {_, _, Ref}) ->
+  io:format("Missile ~p terminated. Reason: ~p~n", [Ref, Reason]),
   ok.
 
-%% Basic linear modeling
-updatePosition({Vx, Vy}, {Px, Py}, Cycle) ->
-  {Px + Vx * Cycle, Py + Vy * Cycle}.
-updateVelocity({Ax, Ay}, {Vx, Vy}, Cycle) ->
-  {Vx + Ax * Cycle, Vy + Ay * Cycle}.
+updatePosition({Vx, Vy}, {Px, Py}, TimeDiff) ->
+  {Px + Vx * TimeDiff, Py + Vy * TimeDiff}.
+updateVelocity({Ax, Ay}, {Vx, Vy}, TimeDiff) ->
+  {Vx + Ax * TimeDiff, Vy + Ay * TimeDiff}.
 
+assesHit({_Px, Py}, [], PyG) ->
+  if
+    PyG =< Py -> hitground;
+    true -> nohit
+  end;
+assesHit({Px, Py}, [{CityName, PxC, PyC} | Cities], PyG) ->
+  if
+    (abs(Px - PxC) < 5) and (abs(Py - PyC) < 5) -> {hitcity, CityName};
+    true -> assesHit({Px, Py}, Cities, PyG)
+  end.
 
-updateServer(NextPosition, Server, Ref) ->
-  gen_server:cast(Server, {updateMissile, NextPosition, Ref}).
+calcAngle({Vx, Vy}) ->
+  math:atan(Vy / Vx).
