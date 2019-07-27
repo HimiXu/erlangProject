@@ -30,9 +30,9 @@ callback_mode() ->
   state_functions.
 idle(cast, hit, {Position, Name}) ->
   node_server:updateStatus({city, Name, {destroyed, Position}}),
-  {next_state, destoryed, {Position, Name}}.
+  {next_state, destroyed, {Position, Name}}.
 destroyed(cast, _, {Position, Name}) ->
-  {next_state, destoryed, {Position, Name}}.
+  {next_state, destroyed, {Position, Name}}.
 
 terminate(Reason, _State, {_, _, Ref}) ->
   io:format("City ~p terminated. Reason: ~p~n", [Ref, Reason]),

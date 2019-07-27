@@ -45,21 +45,21 @@ init(_Args) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PROPERTY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 handle_cast({updateStatus, city, Name, {Status, Position}}, Tables) ->
-  CitiesTable = maps:get(Tables, ct, error),
+  CitiesTable = maps:get(ct, Tables, error),
   io:format("City ~p at ~p status: ~p~n", [Name, Position, Status]),
   ets:insert(CitiesTable, {Name, {Status, Position}}),
   {noreply, Tables};
 
 %----------------------------------------------------------------------------%
 handle_cast({updateStatus, launcher, Ref, {Status, Position}}, Tables) ->
-  LaunchersTable = maps:get(Tables, lt, error),
+  LaunchersTable = maps:get(lt, Tables, error),
   io:format("Launcher ~p at ~p status: ~p~n", [Ref, Position, Status]),
   ets:insert(LaunchersTable, {Ref, {Status, Position}}),
   {noreply, Tables};
 
 %----------------------------------------------------------------------------%
 handle_cast({updateStatus, radar, Ref, {Status, Position}}, Tables) ->
-  RadarsTable = maps:get(Tables, rt, error),
+  RadarsTable = maps:get(rt, Tables, error),
   io:format("Radar ~p at ~p status: ~p~n", [Ref, Position, Status]),
   ets:insert(RadarsTable, {Ref, {Status, Position}}),
   {noreply, Tables};
@@ -69,25 +69,25 @@ handle_cast({updateStatus, radar, Ref, {Status, Position}}, Tables) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% MISSILE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 handle_cast({updateStatus, missile, Ref, {falling, Velocity, Position, Angle}}, Tables) ->
-  MissilesTable = maps:get(Tables, mt, error),
+  MissilesTable = maps:get(mt, Tables, error),
   io:format("Missile ~p is falling at ~p with velocity ~p~n", [Ref, Position, Velocity]),
   ets:insert(MissilesTable, {Ref, {falling, Velocity, Position, Angle}}),
   {noreply, Tables};
 
 %----------------------------------------------------------------------------%
 handle_cast({updateStatus, missile, Ref, {exploded, Position}}, Tables) ->
-  MissilesTable = maps:get(Tables, mt, error),
+  MissilesTable = maps:get(mt, Tables, error),
   io:format("Missile ~p exploded at ~p~n", [Ref, Position]),
   ets:delete(MissilesTable, Ref),
-  Explosions = maps:get(Tables, explosions, error),
+  Explosions = maps:get(explosions, Tables, error),
   {noreply, Tables#{explosions => [Position | Explosions]}};
 
 %----------------------------------------------------------------------------%
 handle_cast({updateStatus, missile, Ref, {intercepted, Position}}, Tables) ->
-  MissilesTable = maps:get(Tables, mt, error),
+  MissilesTable = maps:get(mt, Tables, error),
   io:format("Missile ~p intercepted at ~p~n", [Ref, Position]),
   ets:delete(MissilesTable, Ref),
-  Interceptions = maps:get(Tables, interceptions, error),
+  Interceptions = maps:get(interceptions, Tables, error),
   {noreply, Tables#{explosions => [Position | Interceptions]}};
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% MISSILE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -96,21 +96,21 @@ handle_cast({updateStatus, missile, Ref, {intercepted, Position}}, Tables) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ANTIMISSILE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 handle_cast({updateStatus, antimissile, Ref, {intercepting, Velocity, Position, Angle}}, Tables) ->
-  AntiMissilesTable = maps:get(Tables, amt, error),
+  AntiMissilesTable = maps:get(amt, Tables, error),
   io:format("Anti-missile ~p is intercepting at ~p with velocity ~p~n", [Ref, Position, Velocity]),
   ets:insert(AntiMissilesTable, {Ref, {intercepting, Velocity, Position, Angle}}),
   {noreply, Tables};
 
 %----------------------------------------------------------------------------%
 handle_cast({updateStatus, antimissile, Ref, {out, _Position}}, Tables) ->
-  AntiMissilesTable = maps:get(Tables, amt, error),
+  AntiMissilesTable = maps:get(amt, Tables, error),
   io:format("Anti-missile ~p is out of bounds ~n", [Ref]),
   ets:delete(AntiMissilesTable, Ref),
   {noreply, Tables};
 
 %----------------------------------------------------------------------------%
 handle_cast({updateStatus, antimissile, Ref, {successful, Position}}, Tables) ->
-  AntiMissilesTable = maps:get(Tables, amt, error),
+  AntiMissilesTable = maps:get(amt, Tables, error),
   io:format("Anti-missile ~p successfully intercepted missile at ~p~n", [Ref, Position]),
   ets:delete(AntiMissilesTable, Ref),
   {noreply, Tables}.
@@ -119,12 +119,12 @@ handle_cast({updateStatus, antimissile, Ref, {successful, Position}}, Tables) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 handle_call(getMissiles, _From, Tables) ->
-  MissilesTable = maps:get(Tables, mt, error),
+  MissilesTable = maps:get(mt, Tables, error),
   Missiles = ets:tab2list(MissilesTable),
   {reply, lists:map(fun({Ref, {falling, _Velocity, {Px, Py}, _Angle}}) -> {Ref, Px, Py} end, Missiles), Tables};
 
 handle_call({getMissiles, {PyTop, PyMid, PyBot, PxMid, Width}}, _From, Tables) ->
-  MissilesTable = maps:get(Tables, mt, error),
+  MissilesTable = maps:get(mt, Tables, error),
   Missiles = ets:tab2list(MissilesTable),
   MissilesData = lists:map(fun({_Ref, {falling, Velocity, Position, _Angle}}) -> {Velocity, Position} end, Missiles),
   MissilesInSight = lists:filter(fun({_Velocity, {Px, Py}}) ->

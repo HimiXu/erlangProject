@@ -41,17 +41,17 @@ intercepting(cast, {tick, TimeDiff}, {{Acceleration, Velocity, Position}, PxMax,
       Status = {NextState, NextVelocity, NextPosition, Angle};
     {hitmissile, MissileRef} -> NextState = successful,
       Status = {NextState, NextPosition},
+      mclock:unregister(antimissile,Ref),
       missile:interception(MissileRef);
     hitsky -> NextState = out,
+      mclock:unregister(antimissile,Ref),
       Status = {NextState, NextPosition}
   end,
   node_server:updateStatus({antimissile, Ref, Status}),
   {next_state, NextState, {{Acceleration, NextVelocity, NextPosition}, PxMax, Ref}}.
-successful(enter, _State, {_, _, Ref}) ->
-  mclock:unregister(antimissile,Ref),
+successful(enter, _State, {_, _, _Ref}) ->
   {stop, successful}.
-out(enter, _State, {_, _, Ref}) ->
-  mclock:unregister(antimissile,Ref),
+out(enter, _State, {_, _, _Ref}) ->
   {stop, out}.
 terminate(Reason, _State, {_, _, Ref}) ->
   io:format("Anti-missile ~p terminated. Reason: ~p~n", [Ref, Reason]),
@@ -69,7 +69,7 @@ assesHit({Px, Py}, [], PxMax) ->
   end;
 assesHit({Px, Py}, [{MissileRef, PxM, PyM} | Missiles], PxMax) ->
   if
-    (abs(Px - PxM) < 5) and (abs(Py - PyM) < 5) -> {hitcity, MissileRef};
+    (abs(Px - PxM) < 5) and (abs(Py - PyM) < 5) -> {hitmissile, MissileRef};
     true -> assesHit({Px, Py}, Missiles, PxMax)
   end.
 

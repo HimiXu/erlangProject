@@ -39,9 +39,9 @@ idle(cast, {launch, TargetPosition, DeltaT}, {Position, PxMax, Ref}) ->
   {next_state, idle, {Position, PxMax, Ref}};
 idle(cast, hit, {Position, PxMax, Ref}) ->
   node_server:updateStatus({launcher, Ref, {destroyed, Position}}),
-  {next_state, destoryed, {Position, PxMax, Ref}}.
+  {next_state, destroyed, {Position, PxMax, Ref}}.
 destroyed(cast, _, {Position, PxMax, Ref}) ->
-  {next_state, destoryed, {Position, PxMax, Ref}}.
+  {next_state, destroyed, {Position, PxMax, Ref}}.
 
 terminate(Reason, _State, {_, _, Ref}) ->
   io:format("Launcher ~p terminated. Reason: ~p~n", [Ref, Reason]),

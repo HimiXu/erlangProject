@@ -43,9 +43,9 @@ idle(cast, tick, {Position, Sight, MissileTimeDiff, Launchers, ClockPID, Ref}) -
   {next_state, idle, {Position, Sight, MissileTimeDiff, Launchers, ClockPID, Ref}};
 idle(cast, hit, {Position, Sight, MissileTimeDiff, Launchers, ClockPID, Ref}) ->
   node_server:updateStatus({launcher, Ref, {destroyed, Position}}),
-  {next_state, destoryed, {Position, Sight, MissileTimeDiff, Launchers, ClockPID, Ref}}.
+  {next_state, destroyed, {Position, Sight, MissileTimeDiff, Launchers, ClockPID, Ref}}.
 destroyed(cast, _, {Position, Sight, MissileTimeDiff, Launchers, ClockPID, Ref}) ->
-  {next_state, destoryed, {Position, Sight, MissileTimeDiff, Launchers, ClockPID, Ref}}.
+  {next_state, destroyed, {Position, Sight, MissileTimeDiff, Launchers, ClockPID, Ref}}.
 
 terminate(Reason, _State, {_, _, _, _, _, Ref}) ->
   io:format("Radar ~p terminated. Reason: ~p~n", [Ref, Reason]),
@@ -53,10 +53,10 @@ terminate(Reason, _State, {_, _, _, _, _, Ref}) ->
 
 calcTargets([], _MissileTimeDiff, Targets) -> Targets;
 calcTargets([{{Vx, Vy}, {Px, Py}} | Missiles], MissileTimeDiff, Targets) ->
-  DeltaT = 10 * MissileTimeDiff,
+  DeltaT = 5 * MissileTimeDiff,
   PxT = Px + Vx * DeltaT,
-  PyT = Py + Vy * DeltaT + (10 * DeltaT * DeltaT) / 2,
+  PyT = Py + Vy * DeltaT + (0.8 * DeltaT * DeltaT) / 2,
   calcTargets(Missiles, MissileTimeDiff, [{{PxT, PyT}, DeltaT} | Targets]).
 
 calcSight({Px, Py}) ->
-  {Py - 500, Py - 300, Py, Px}.
+  {Py - 500, Py - 300, Py, Px, 400}.
