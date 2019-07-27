@@ -1,2 +1,2 @@
 # erlangProject
-![alt text](https://imgur.com/ECGi9Bq)
+![alt text](https://i.imgur.com/ECGi9Bq.jpg)
