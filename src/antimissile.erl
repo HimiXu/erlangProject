@@ -25,7 +25,7 @@ tick(Ref, TimeDiff) ->
   gen_statem:cast(Name, {tick, TimeDiff}).
 
 init({{Acceleration, Velocity, Position}, PxMax, Ref}) ->
-  mclock:register(Ref),
+  mclock:register(antimissile,Ref),
   {ok, intercepting, {{Acceleration, Velocity, Position}, PxMax, Ref}}.
 
 callback_mode() ->
@@ -45,14 +45,13 @@ intercepting(cast, {tick, TimeDiff}, {{Acceleration, Velocity, Position}, PxMax,
     hitsky -> NextState = out,
       Status = {NextState, NextPosition}
   end,
-  %% TODO
-  node_server:updateStatus({Ref, Status}),
+  node_server:updateStatus({antimissile, Ref, Status}),
   {next_state, NextState, {{Acceleration, NextVelocity, NextPosition}, PxMax, Ref}}.
 successful(enter, _State, {_, _, Ref}) ->
-  mclock:unregister(Ref),
+  mclock:unregister(antimissile,Ref),
   {stop, successful}.
 out(enter, _State, {_, _, Ref}) ->
-  mclock:unregister(Ref),
+  mclock:unregister(antimissile,Ref),
   {stop, out}.
 terminate(Reason, _State, {_, _, Ref}) ->
   io:format("Anti-missile ~p terminated. Reason: ~p~n", [Ref, Reason]),

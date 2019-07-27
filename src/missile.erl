@@ -17,27 +17,27 @@
 -export([init/1, callback_mode/0, terminate/3]).
 -export([falling/3, exploded/3, intercepted/3]).
 
-start_link({{Acceleration, Velocity, Position}, {Cities, Ground}, Ref}) ->
+start_link({{Acceleration, Velocity, Position}, {Cities, Launchers, Radars, Ground}, Ref}) ->
   Name = list_to_atom(lists:append("missile", ref_to_list(Ref))),
-  {Ref, Name, gen_statem:start_link({local, Name}, ?MODULE, {{Acceleration, Velocity, Position}, {Cities, Ground}, Ref}, [])}.
+  {Ref, Name, gen_statem:start_link({local, Name}, ?MODULE, {{Acceleration, Velocity, Position}, {Cities, Launchers, Radars, Ground}, Ref}, [])}.
 
 tick(Ref, TimeDiff) ->
   Name = list_to_atom(lists:append("missile", ref_to_list(Ref))),
   gen_statem:cast(Name, {tick, TimeDiff}).
 interception(Ref) ->
   Name = list_to_atom(lists:append("missile", ref_to_list(Ref))),
-  gen_statem:stop(Name).
+  gen_statem:cast(Name, interception).
 
-init({{Acceleration, Velocity, Position}, {Cities, Ground}, Ref}) ->
-  mclock:register(Ref),
-  {ok, falling, {{Acceleration, Velocity, Position}, {Cities, Ground}, Ref}}.
+init({{Acceleration, Velocity, Position}, {Cities, Launchers, Radars, Ground}, Ref}) ->
+  mclock:register(missile,Ref),
+  {ok, falling, {{Acceleration, Velocity, Position}, {Cities, Launchers, Radars, Ground}, Ref}}.
 
 callback_mode() ->
   state_functions.
-falling(cast, {tick, TimeDiff}, {{Acceleration, Velocity, Position}, {Cities, Ground}, Ref}) ->
+falling(cast, {tick, TimeDiff}, {{Acceleration, Velocity, Position}, {Cities, Launchers, Radars, Ground}, Ref}) ->
   NextPosition = updatePosition(Velocity, Position, TimeDiff),
   NextVelocity = updateVelocity(Acceleration, Velocity, TimeDiff),
-  HitState = assesHit(NextPosition, Cities, Ground),
+  HitState = assesHit(NextPosition, Cities, Launchers, Radars, Ground),
   case HitState of
     nohit -> Angle = calcAngle(Velocity),
       NextState = falling,
@@ -46,20 +46,28 @@ falling(cast, {tick, TimeDiff}, {{Acceleration, Velocity, Position}, {Cities, Gr
       Status = {NextState, NextPosition},
       %% TODO
       city:hit(CityName);
+    {hitlauncher, LauncherRef} -> NextState = exploded,
+      Status = {NextState, NextPosition},
+      %% TODO
+      launcher:hit(LauncherRef);
+    {hitradar, RadarRef} -> NextState = exploded,
+      Status = {NextState, NextPosition},
+      %% TODO
+      radar:hit(RadarRef);
     hitground -> NextState = exploded,
       Status = {NextState, NextPosition}
   end,
   %% TODO
-  node_server:updateStatus({Ref, Status}),
+  node_server:updateStatus({missile, Ref, Status}),
   {next_state, NextState, {{Acceleration, NextVelocity, NextPosition}, {Cities, Ground}, Ref}};
 falling(cast, interception, {{Acceleration, Velocity, Position}, {Cities, Ground}, Ref}) ->
-  node_server:updateStatus({Ref, {intercepted, Position}}),
+  node_server:updateStatus({missile, Ref, {intercepted, Position}}),
   {next_state, intercepted, {{Acceleration, Velocity, Position}, {Cities, Ground}, Ref}}.
 exploded(enter, _State, {_, _, Ref}) ->
-  mclock:unregister(Ref),
+  mclock:unregister(missile,Ref),
   {stop, exploded}.
 intercepted(enter, _State, {_, _, Ref}) ->
-  mclock:unregister(Ref),
+  mclock:unregister(missile,Ref),
   {stop, intercepted}.
 terminate(Reason, _State, {_, _, Ref}) ->
   io:format("Missile ~p terminated. Reason: ~p~n", [Ref, Reason]),
@@ -70,15 +78,25 @@ updatePosition({Vx, Vy}, {Px, Py}, TimeDiff) ->
 updateVelocity({Ax, Ay}, {Vx, Vy}, TimeDiff) ->
   {Vx + Ax * TimeDiff, Vy + Ay * TimeDiff}.
 
-assesHit({_Px, Py}, [], PyG) ->
+assesHit({_Px, Py}, [], [], [], PyG) ->
   if
-    PyG =< Py -> hitground;
+    Py >= PyG -> hitground;
     true -> nohit
   end;
-assesHit({Px, Py}, [{CityName, PxC, PyC} | Cities], PyG) ->
+assesHit({Px, Py}, [], [], [{RadarRef, PxR, PyR} | Radars], PyG) ->
+  if
+    (abs(Px - PxR) < 5) and (abs(Py - PyR) < 5) -> {hitradar, RadarRef};
+    true -> assesHit({Px, Py}, [], [], Radars, PyG)
+  end;
+assesHit({Px, Py}, [], [{LauncherRef, PxL, PyL} | Launchers], Radars, PyG) ->
+  if
+    (abs(Px - PxL) < 5) and (abs(Py - PyL) < 5) -> {hitlauncher, LauncherRef};
+    true -> assesHit({Px, Py}, [], Launchers, Radars, PyG)
+  end;
+assesHit({Px, Py}, [{CityName, PxC, PyC} | Cities], Launchers, Radars, PyG) ->
   if
     (abs(Px - PxC) < 5) and (abs(Py - PyC) < 5) -> {hitcity, CityName};
-    true -> assesHit({Px, Py}, Cities, PyG)
+    true -> assesHit({Px, Py}, Cities, Launchers, Radars, PyG)
   end.
 
 calcAngle({Vx, Vy}) ->
