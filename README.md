@@ -1,5 +1,5 @@
 # erlangProject
-Back-end Interface to Graphics
+**Back-end Interface to Graphics
 
 
 ![alt text](https://i.imgur.com/Nf6f7w4.jpg)
@@ -31,5 +31,5 @@ Interceptions: {PositionX,PositionY}
 
 
 
-Back-end diagrams
+**Back-end diagrams
 ![alt text](https://i.imgur.com/ECGi9Bq.jpg)
