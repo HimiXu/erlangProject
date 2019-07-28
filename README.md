@@ -1,6 +1,13 @@
 # erlangProject
 Back-end Interface to Graphics
+
+
 ![alt text](https://i.imgur.com/Nf6f7w4.jpg)
+
+
+
+
+
 The packet build: {Missiles,AntiMissiles,Cities,Radars,Launchers,Explosions,Interceptions}
 Every item in every list description:
 Missiles: {Ref, {falling, Velocity, {PositionX,PositionY}, Angle}}
