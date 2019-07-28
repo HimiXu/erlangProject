@@ -13,10 +13,14 @@
 %% API
 -export([start_link/0]).
 -export([handle_cast/2, handle_call/3, init/1]).
--export([updateStatus/1, getMissiles/0, getMissiles/1]).
+-export([updateStatus/1, getMissiles/0, getMissiles/1, update/0]).
 
 start_link() ->
   gen_server:start_link({local, node_server}, node_server, [], []).
+
+
+update() ->
+  gen_server:call(node_server, update).
 
 updateStatus({Type, RefOrName, Status}) ->
   gen_server:cast(node_server, {updateStatus, Type, RefOrName, Status}).
@@ -80,7 +84,7 @@ handle_cast({updateStatus, missile, Ref, {exploded, Position}}, Tables) ->
   io:format("Missile ~p exploded at ~p~n", [Ref, Position]),
   ets:delete(MissilesTable, Ref),
   Explosions = maps:get(explosions, Tables, error),
-  {noreply, Tables#{explosions => [Position | Explosions]}};
+  {noreply, Tables#{explosions => [Position| Explosions]}};
 
 %----------------------------------------------------------------------------%
 handle_cast({updateStatus, missile, Ref, {intercepted, Position}}, Tables) ->
@@ -88,7 +92,7 @@ handle_cast({updateStatus, missile, Ref, {intercepted, Position}}, Tables) ->
   io:format("Missile ~p intercepted at ~p~n", [Ref, Position]),
   ets:delete(MissilesTable, Ref),
   Interceptions = maps:get(interceptions, Tables, error),
-  {noreply, Tables#{explosions => [Position | Interceptions]}};
+  {noreply, Tables#{interceptions => [Position | Interceptions]}};
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% MISSILE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -117,6 +121,17 @@ handle_cast({updateStatus, antimissile, Ref, {successful, Position}}, Tables) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ANTIMISSILE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+handle_call(update, _From, Tables) ->
+  Missiles = ets:tab2list(maps:get(mt, Tables, error)),
+  AntiMissiles = ets:tab2list(maps:get(amt, Tables, error)),
+  Cities = ets:tab2list(maps:get(ct, Tables, error)),
+  Radars = ets:tab2list(maps:get(rt, Tables, error)),
+  Launchers = ets:tab2list(maps:get(lt, Tables, error)),
+  Explosions = maps:get(explosions, Tables, error),
+  Interceptions = maps:get(interceptions, Tables, error),
+  Packet = {Missiles, AntiMissiles, Cities, Radars, Launchers, Explosions, Interceptions},
+  {reply, Packet, Tables#{explosions => [], interceptions => []}};
 
 handle_call(getMissiles, _From, Tables) ->
   MissilesTable = maps:get(mt, Tables, error),
