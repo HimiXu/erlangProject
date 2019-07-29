@@ -15,6 +15,8 @@
 -export([handle_cast/2, handle_call/3, init/1]).
 -export([updateStatus/1, getMissiles/0, getMissiles/1, update/0]).
 
+-include_lib("stdlib/include/qlc.hrl").
+
 start_link() ->
   gen_server:start_link({local, node_server}, node_server, [], []).
 
@@ -123,14 +125,19 @@ handle_cast({updateStatus, antimissile, Ref, {successful, Position}}, Tables) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 handle_call(update, _From, Tables) ->
-  Missiles = ets:tab2list(maps:get(mt, Tables, error)),
-  AntiMissiles = ets:tab2list(maps:get(amt, Tables, error)),
-  Cities = ets:tab2list(maps:get(ct, Tables, error)),
-  Radars = ets:tab2list(maps:get(rt, Tables, error)),
-  Launchers = ets:tab2list(maps:get(lt, Tables, error)),
-  Explosions = maps:get(explosions, Tables, error),
-  Interceptions = maps:get(interceptions, Tables, error),
-  Packet = {Missiles, AntiMissiles, Cities, Radars, Launchers, Explosions, Interceptions},
+  Missiles=qlc:eval(qlc: q([ {round(X), round(Y), Angle} || {_Ref, {falling, _Velocity, {X,Y}, Angle}} <- ets:table(maps:get(mt, Tables, error))])),
+  AntiMissiles = qlc:eval(qlc: q([ {round(X), round(Y), Angle} || {_Ref, {intercepting, _Velocity, {X,Y}, Angle}} <- ets:table(maps:get(amt, Tables, error))])),
+  Cities = qlc:eval(qlc: q([ {Name, Status} || {Name, {Status, _Position}} <- ets:table(maps:get(ct, Tables, error))])),
+  Radars = qlc:eval(qlc: q([ {Name, Status} || {Name, {Status, _Position}} <- ets:table(maps:get(rt, Tables, error))])),
+  Launchers = qlc:eval(qlc: q([ {Name, Status} || {Name, {Status, _Position}} <- ets:table(maps:get(lt, Tables, error))])),
+  Explosions = lists:map ( fun ({X,Y}) -> {round(X), round(Y)} end,  maps:get(explosions, Tables, error)),
+  Interceptions = lists:map ( fun ({X,Y}) -> {round(X), round(Y)} end,  maps:get(interceptions, Tables, error)),
+  %Missiles = ets:tab2list(maps:get(mt, Tables, error)),
+  %AntiMissiles = ets:tab2list(maps:get(amt, Tables, error)),
+  %Cities = ets:tab2list(maps:get(ct, Tables, error)),
+  %Radars = ets:tab2list(maps:get(rt, Tables, error)),
+  %Launchers = ets:tab2list(maps:get(lt, Tables, error)),
+  Packet = {Launchers, Radars, Cities, AntiMissiles,  Missiles, Interceptions, Explosions},
   {reply, Packet, Tables#{explosions => [], interceptions => []}};
 
 handle_call(getMissiles, _From, Tables) ->

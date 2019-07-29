@@ -16,15 +16,27 @@
 -export([init/1, callback_mode/0, terminate/3]).
 -export([idle/3, destroyed/3]).
 
+
+%%start_link({Position, PxMax, Ref}) ->
+%%  Name = list_to_atom(lists:append("launcher", ref_to_list(Ref))),
+%%  {Ref, Name, gen_statem:start_link({local, Name}, ?MODULE, {Position, PxMax, Ref}, [])}.
+%%
+%%hit(Ref) ->
+%%  Name = list_to_atom(lists:append("launcher", ref_to_list(Ref))),
+%%  gen_statem:cast(Name, hit).
+%%launch(Ref, {TargetPosition, DeltaT}) ->
+%%  Name = list_to_atom(lists:append("launcher", ref_to_list(Ref))),
+%%  gen_statem:cast(Name, {launch, TargetPosition, DeltaT}).
+
 start_link({Position, PxMax, Ref}) ->
-  Name = list_to_atom(lists:append("launcher", ref_to_list(Ref))),
+  Name = list_to_atom(lists:append("launcher", [Ref])),
   {Ref, Name, gen_statem:start_link({local, Name}, ?MODULE, {Position, PxMax, Ref}, [])}.
 
 hit(Ref) ->
-  Name = list_to_atom(lists:append("launcher", ref_to_list(Ref))),
+  Name = list_to_atom(lists:append("launcher", [Ref])),
   gen_statem:cast(Name, hit).
 launch(Ref, {TargetPosition, DeltaT}) ->
-  Name = list_to_atom(lists:append("launcher", ref_to_list(Ref))),
+  Name = list_to_atom(lists:append("launcher", [Ref])),
   gen_statem:cast(Name, {launch, TargetPosition, DeltaT}).
 
 init({Position, PxMax, Ref}) ->

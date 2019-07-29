@@ -109,19 +109,27 @@ loadCitiesImages()->
 %%returns map of bitmaps of the radars images
 loadRadarsImages()->
   #{
-    radar1    => wxBitmap:new(wxImage:new("include/radar1.png")),
-    radar2    => wxBitmap:new(wxImage:new("include/radar2.png")),
-    radar3    => wxBitmap:new(wxImage:new("include/radar3.png")),
-    radar4    => wxBitmap:new(wxImage:new("include/radar4.png"))
+    1    => wxBitmap:new(wxImage:new("include/radar1.png")),
+    2    => wxBitmap:new(wxImage:new("include/radar2.png")),
+    3    => wxBitmap:new(wxImage:new("include/radar3.png")),
+    4    => wxBitmap:new(wxImage:new("include/radar4.png"))
+%%    radar1    => wxBitmap:new(wxImage:new("include/radar1.png")),
+%%    radar2    => wxBitmap:new(wxImage:new("include/radar2.png")),
+%%    radar3    => wxBitmap:new(wxImage:new("include/radar3.png")),
+%%    radar4    => wxBitmap:new(wxImage:new("include/radar4.png"))
   }.
 
 %%returns map of bitmaps of the launchers images
 loadLaunchersImages()->
   #{
-    launcher1 => wxBitmap:new(wxImage:new("include/launcher1.png")),
-    launcher2 => wxBitmap:new(wxImage:new("include/launcher2.png")),
-    launcher3 => wxBitmap:new(wxImage:new("include/launcher3.png")),
-    launcher4 => wxBitmap:new(wxImage:new("include/launcher4.png"))
+    1 => wxBitmap:new(wxImage:new("include/launcher1.png")),
+    2 => wxBitmap:new(wxImage:new("include/launcher2.png")),
+    3 => wxBitmap:new(wxImage:new("include/launcher3.png")),
+    4 => wxBitmap:new(wxImage:new("include/launcher4.png"))
+%%    launcher1 => wxBitmap:new(wxImage:new("include/launcher1.png")),
+%%    launcher2 => wxBitmap:new(wxImage:new("include/launcher2.png")),
+%%    launcher3 => wxBitmap:new(wxImage:new("include/launcher3.png")),
+%%    launcher4 => wxBitmap:new(wxImage:new("include/launcher4.png"))
   }.
 
 %%returns bitmaps of the Missile And Explosion images

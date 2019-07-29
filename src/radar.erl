@@ -16,16 +16,29 @@
 -export([init/1, callback_mode/0, terminate/3]).
 -export([idle/3, destroyed/3]).
 
+
+%%start_link({Position, MissileTimeDiff, Launchers, RefreshT, Ref}) ->
+%%  ClockPID = spawn(fun F() -> timer:sleep(RefreshT * 1000), radar:tick(Ref), F() end),
+%%  Name = list_to_atom(lists:append("radar", ref_to_list(Ref))),
+%%  {Ref, Name, gen_statem:start_link({local, Name}, ?MODULE, {Position, MissileTimeDiff, Launchers, ClockPID, Ref}, [])}.
+%%
+%%hit(Ref) ->
+%%  Name = list_to_atom(lists:append("radar", ref_to_list(Ref))),
+%%  gen_statem:cast(Name, hit).
+%%tick(Ref) ->
+%%  Name = list_to_atom(lists:append("radar", ref_to_list(Ref))),
+%%  gen_statem:cast(Name, tick).
+
 start_link({Position, MissileTimeDiff, Launchers, RefreshT, Ref}) ->
   ClockPID = spawn(fun F() -> timer:sleep(RefreshT * 1000), radar:tick(Ref), F() end),
-  Name = list_to_atom(lists:append("radar", ref_to_list(Ref))),
+  Name = list_to_atom(lists:append("radar", [Ref])),
   {Ref, Name, gen_statem:start_link({local, Name}, ?MODULE, {Position, MissileTimeDiff, Launchers, ClockPID, Ref}, [])}.
 
 hit(Ref) ->
-  Name = list_to_atom(lists:append("radar", ref_to_list(Ref))),
+  Name = list_to_atom(lists:append("radar", [Ref])),
   gen_statem:cast(Name, hit).
 tick(Ref) ->
-  Name = list_to_atom(lists:append("radar", ref_to_list(Ref))),
+  Name = list_to_atom(lists:append("radar", [Ref])),
   gen_statem:cast(Name, tick).
 
 init({Position, MissileTimeDiff, Launchers, ClockPID, Ref}) ->
