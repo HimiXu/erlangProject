@@ -22,7 +22,7 @@ init(ServerInfo) ->                 %%TODO: see what kind of information of the 
 
 
 sendingPacketsController(ServerInfo, Iteration) -> %TODO: remove Iteration
-  timer:sleep(400), %%TODO: set The refresh time between sends
+  timer:sleep(100), %%TODO: set The refresh time between sends
 
   spawn_link(fun()-> getQuarterDataAndSend(1, ServerInfo, Iteration) end),
   spawn_link(fun()-> getQuarterDataAndSend(2, ServerInfo, Iteration) end),
@@ -35,11 +35,11 @@ getQuarterDataAndSend(Quarter, _ServerInfo, Iteration) -> %%TODO: set the connec
     1 ->
       PacketData= node_server:update();
     2 ->
-      PacketData= node_server:update();
+      PacketData= {[], [],[], [],[], [], []};
     3 ->
-      PacketData= node_server:update();
+      PacketData= {[], [],[], [],[], [], []};
     4 ->
-      PacketData= node_server:update()
+      PacketData= {[], [],[], [],[], [], []}
   end,
   gen_statem:cast(graphic, PacketData).
 

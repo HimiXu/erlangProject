@@ -40,7 +40,7 @@ init([]) ->
   MissileAndExplosionImages = loadMissileAndExplosionImages(),
   RadarsImages=loadRadarsImages(),
   LaunchersImages=loadLaunchersImages(),
-  %%spawn_link(fun()->draw_buttuns(Panel,WxEnv,PlayersPNGs) end), %
+  %spawn_link(fun()->draw_buttuns(Panel,WxEnv) end), %
   wxFrame:show(Frame),
   wxPanel:connect(Canvas, paint, []),
   Background =wxImage:new("include/worldBackground.png"), %background
