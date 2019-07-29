@@ -47,6 +47,7 @@ init([]) ->
   ClientDC = wxClientDC:new(Canvas),
   BackgroundBitmap = wxBitmap:new(Background), %convert to bitmap
   wxDC:drawBitmap(ClientDC, BackgroundBitmap, {0,0}),
+  wxImage:destroy(Background),
   wxClientDC:destroy(ClientDC),
   Data= #{citiesImages =>CitiesImages, missileAndExplosionImages=> MissileAndExplosionImages,
     radarsImages => RadarsImages, launchersImages => LaunchersImages,
@@ -61,7 +62,6 @@ packetsDeliver(info, _OldState, Data) ->
   {keep_state, Data};
 
 packetsDeliver(cast, PacketData, Data) ->
-  io:format ("Key0", []),
   NumOfPacketsDelivered=maps:get(numOfPacketsDelivered, Data),
   NewData=
     if
@@ -73,6 +73,7 @@ packetsDeliver(cast, PacketData, Data) ->
     if
       NewNumOfPacketsDelivered =:= 4 ->
         finishDrawing(NewData),
+        %%erlang:garbage_collect(),
         {keep_state, NewData#{numOfPacketsDelivered := 0}};
       true ->
         {keep_state, NewData}
@@ -146,7 +147,7 @@ drawCitiesOrRadarsOrLaunchers(_WxEnv,_BufferDC, _Images, []) ->
   finishedDrawingElements;
 
 drawCitiesOrRadarsOrLaunchers(WxEnv,BufferDC, Images, [ElementData|OtherElementsData]) ->
-  wx:set_env(WxEnv),
+  %wx:set_env(WxEnv),
   case element(2, ElementData) of
     destroyed ->
       drawCitiesOrRadarsOrLaunchers (WxEnv, BufferDC, Images, OtherElementsData);
@@ -160,11 +161,12 @@ drawAntiMissiles (_WxEnv, _BufferDC, _MissileAndExplosionImages, []) ->
   finishedDrawingAntiMissiles;
 
 drawAntiMissiles (WxEnv, BufferDC, MissileAndExplosionImages, [{X, Y, Angle}|OtherAntiMissiles]) ->
-  wx:set_env(WxEnv),
+  %wx:set_env(WxEnv),
   Image= wxImage:rotate (element(1,MissileAndExplosionImages), Angle, {31, 48}), %%rotate(This, Angle, Centre_of_rotation) %%TODO: check the angle unit, make sure you choose the right center
   Bitmap= wxBitmap:new(Image),
   wxDC:drawBitmap(BufferDC, Bitmap, {X,Y}), %%TODO: check maybe it is the opposite
   wxBitmap:destroy(Bitmap),
+  wxImage:destroy(Image),
   drawAntiMissiles (WxEnv, BufferDC, MissileAndExplosionImages, OtherAntiMissiles).
 
 
@@ -173,11 +175,12 @@ drawMissiles (_WxEnv, _BufferDC, _MissileAndExplosionImages, []) ->
   finishedDrawingMissiles;
 
 drawMissiles (WxEnv, BufferDC, MissileAndExplosionImages, [{X, Y, Angle}|OtherMissiles]) ->
-  wx:set_env(WxEnv),
+  %wx:set_env(WxEnv),
   Image= wxImage:rotate (element(2,MissileAndExplosionImages), Angle, {26, 42}), %%rotate(This, Angle, Centre_of_rotation) %%TODO: check the angle unit, make sure you choose the right center
   Bitmap= wxBitmap:new(Image),
   wxDC:drawBitmap(BufferDC, Bitmap, {X,Y}), %%TODO: check maybe it is the opposite
   wxBitmap:destroy(Bitmap),
+  wxImage:destroy(Image),
   drawAntiMissiles (WxEnv, BufferDC, MissileAndExplosionImages, OtherMissiles).
 
 
@@ -186,7 +189,7 @@ drawInterceptions(_WxEnv, _BufferDC, _MissileAndExplosionImages, []) ->
   finishedDrawingExplosions;
 
 drawInterceptions(WxEnv, BufferDC, MissileAndExplosionImages, [{X, Y}|OtherInterceptions]) ->
-  wx:set_env(WxEnv),
+  %wx:set_env(WxEnv),
   wxDC:drawBitmap(BufferDC, element(3,MissileAndExplosionImages), {X,Y}),
   drawInterceptions(WxEnv, BufferDC, MissileAndExplosionImages, OtherInterceptions).
 
@@ -196,7 +199,7 @@ drawExplosions(_WxEnv, _BufferDC, _MissileAndExplosionImages, []) ->
   finishedDrawingExplosions;
 
 drawExplosions(WxEnv, BufferDC, MissileAndExplosionImages, [{X, Y}|OtherExplosions]) ->
-  wx:set_env(WxEnv),
+  %wx:set_env(WxEnv),
   wxDC:drawBitmap(BufferDC, element(4,MissileAndExplosionImages), {X,Y}),
   drawExplosions(WxEnv, BufferDC, MissileAndExplosionImages, OtherExplosions).
 

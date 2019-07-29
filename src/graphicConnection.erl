@@ -22,17 +22,18 @@ init(ServerInfo) ->                 %%TODO: see what kind of information of the 
 
 
 sendingPacketsController(ServerInfo, Iteration) -> %TODO: remove Iteration
-  timer:sleep(10), %%TODO: set The refresh time between sends
+  timer:sleep(40), %%TODO: set The refresh time between sends
+  %io:format("~p~n",[erlang:memory()]),
+  %%[io:format("~p:~p: ~p~n",[Pid,erlang:process_info(Pid,current_function),erlang:process_info(Pid,memory)])||Pid<-erlang:processes()],
   spawn_link(fun()-> getQuarterDataAndSend(1, ServerInfo, Iteration) end),
   spawn_link(fun()-> getQuarterDataAndSend(2, ServerInfo, Iteration) end),
   spawn_link(fun()-> getQuarterDataAndSend(3, ServerInfo, Iteration) end),
   spawn_link(fun()-> getQuarterDataAndSend(4, ServerInfo, Iteration) end),
-  sendingPacketsController(ServerInfo, Iteration).
+  sendingPacketsController(ServerInfo, Iteration+1).
 
 getQuarterDataAndSend(Quarter, _ServerInfo, Iteration) -> %%TODO: set the connection to server when is possible
   case Quarter of
     1 ->
-      io:format ("1", []),
       M=[{Iteration, Iteration, 0.5}, {50, Iteration, 0.5}, {100, Iteration, 0.5}, {120, Iteration, 0.5}, {130, Iteration, 0.5},{150, Iteration, 0.5}, {160, Iteration, 0.5}, {170, Iteration, 0.5}, {190, Iteration, 0.5},{200, Iteration, 0.5}],
       AM=[{Iteration, Iteration+20, 0.5},{Iteration, Iteration, 0.5}, {50, Iteration, 0.5}, {20, Iteration, 0.5}, {20, Iteration, 0.5}, {12, Iteration, 0.5},{20, Iteration, 0.5}, {34, Iteration, 0.5}, {50, Iteration, 0.5}, {30, Iteration, 0.5},{12, Iteration, 0.5},{Iteration+200, Iteration, 0.5},
         {110, Iteration, 0.5}, {130, Iteration, 0.5}, {40, Iteration, 0.5}, {130, Iteration+50, 0.5},{150, Iteration, 0.5}, {160, Iteration+80, 0.5}, {170, Iteration+90, 0.5}, {190, Iteration+95, 0.5},{200, Iteration+85, 0.5}],
@@ -41,7 +42,6 @@ getQuarterDataAndSend(Quarter, _ServerInfo, Iteration) -> %%TODO: set the connec
       LaunchersData= [{launcher1, alive}, {launcher2, alive}, {launcher3, destroyed}, {launcher4, alive}],
       RadarsData= [{radar1, alive}, {radar2, destroyed}, {radar3, destroyed}, {radar4, alive}];
     2 ->
-      io:format ("2", []),
       M=[{Iteration+50, Iteration+50, 0.5}, {Iteration+50, 700-Iteration, 0.5},{Iteration+50, 640-Iteration, 0.5}, {Iteration+50, 640-Iteration, 0.5}, {Iteration+50, 600-Iteration, 0.5}, {Iteration+50, 500-Iteration, 0.5}],
       AM=[{Iteration, Iteration+50, 0.5}],
       E=[{Iteration, Iteration+230}],
@@ -49,7 +49,6 @@ getQuarterDataAndSend(Quarter, _ServerInfo, Iteration) -> %%TODO: set the connec
       LaunchersData= [],
       RadarsData= [];
     3 ->
-      io:format ("3", []),
       M=[{Iteration+70, Iteration+70, 0.5}, {Iteration+70, 70, 0.5}, {Iteration+70, 100, 0.5}, {Iteration+70, 120, 0.5}, {Iteration+70, 150, 0.5}, {Iteration+70, 170, 0.5}, {Iteration+70,190, 0.5}, {70, Iteration+70, 0.5}, {120, Iteration+70, 0.5}],
       AM=[{Iteration, Iteration+70, 0.5}],
       E=[{Iteration, Iteration+250}],
@@ -57,7 +56,6 @@ getQuarterDataAndSend(Quarter, _ServerInfo, Iteration) -> %%TODO: set the connec
       LaunchersData= [],
       RadarsData= [];
     4 ->
-      io:format ("4", []),
       M=[{Iteration+90, Iteration+90, 0.5}, {Iteration+150, Iteration+70, 0.5}, {Iteration+150, 70, 0.5}, {Iteration+150, 100, 0.5}, {Iteration+150, 120, 0.5}, {Iteration+150, 150, 0.5}, {Iteration+150, 170, 0.5}, {Iteration+150,190, 0.5}, {150, Iteration+70, 0.5}, {150, Iteration+90, 0.5}],
       AM=[{Iteration, Iteration+90, 0.5}],
       E=[{Iteration, Iteration+270}],
