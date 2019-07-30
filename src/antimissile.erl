@@ -69,7 +69,7 @@ assesHit({Px, Py}, [], PxMax) ->
   end;
 assesHit({Px, Py}, [{MissileRef, PxM, PyM} | Missiles], PxMax) ->
   if
-    (abs(Px - PxM) < 5) and (abs(Py - PyM) < 5) -> {hitmissile, MissileRef};
+    (abs(Px - PxM) < 15) and (abs(Py - PyM) < 15) -> {hitmissile, MissileRef};
     true -> assesHit({Px, Py}, Missiles, PxMax)
   end.
 

@@ -43,7 +43,7 @@ test() ->
   radar:start_link({{189, 652}, 1, [Ref0, Ref1], 1,3 }),
   radar:start_link({{658, 440}, 1, [Ref0, Ref1], 1,4 }),
   mclock:start_link(1),
-  GRAVITY = 0.1,
+  GRAVITY = 0.065,
   missile:start_link({{{0, GRAVITY}, {2, 0}, {0, 0}}, {[
     {budapest, 919, 755}, {newYork, 370, 494}, {paris, 1079, 688}, {jerusalem, 550, 778}, {moscow, 1078, 574},
     {london, 431, 637}, {rome, 725, 684}, {stockholm, 925, 646}, {sydney, 127, 595}]

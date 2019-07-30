@@ -75,13 +75,13 @@ packetsDeliver(cast, PacketData, Data) ->
       NewNumOfPacketsDelivered =:= 4 ->
         finishDrawing(NewData),
         T2=erlang:timestamp(),
-        io:format("runtime==============================================~p  microseconds~n",
-          [timer:now_diff(T2,T0)]),
+%%        io:format("runtime==============================================~p  microseconds~n",
+%%          [timer:now_diff(T2,T0)]),
         {keep_state, NewData#{numOfPacketsDelivered := 0}};
       true ->
         T2=erlang:timestamp(),
-        io:format("runtime==============================================~p  microseconds~n",
-          [timer:now_diff(T2,T0)]),
+%%        io:format("runtime==============================================~p  microseconds~n",
+%%          [timer:now_diff(T2,T0)]),
         {keep_state, NewData}
     end.
 
