@@ -18,8 +18,9 @@
 %launcher Locations: {{808, 572}, launcher1}, {{365, 565}, launcher2}, {{1143, 753}, launcher3}, {{48, 708}, launcher4}
 
 test() ->
-  graphicConnection:init([]),
   node_server:start_link(),
+  graphicConnection:init([]),
+
   city:start_link({{919, 755}, budapest}),
   city:start_link({{370, 494}, newYork}),
   city:start_link({{1079, 688}, paris}),
@@ -35,29 +36,30 @@ test() ->
 %%  {Ref2, _, _} = radar:start_link({{950, 1000}, 1, [Ref0, Ref1], 1, make_ref()}),
 %%  radar:start_link({{420, 1000}, 1, [Ref0, Ref1], 1, make_ref()}),
 
-  {Ref0, _, _} = launcher:start_link({{808, 572}, 1000, 1}),
-  {Ref1, _, _} = launcher:start_link({{365, 565}, 1000, 2}),
+  {Ref0, _, _} = launcher:start_link({{808, 572}, 1200, 1}),
+  {Ref1, _, _} = launcher:start_link({{365, 565}, 1200, 2}),
   {Ref2, _, _} = radar:start_link({{1166, 671}, 1, [Ref0, Ref1], 1, 1}),
   radar:start_link({{753, 596}, 1, [Ref0, Ref1], 1, 2}),
   mclock:start_link(1),
-  missile:start_link({{{0, 0.8}, {10, 0}, {0, 0}}, {[
+  GRAVITY = 0.1,
+  missile:start_link({{{0, GRAVITY}, {2, 0}, {0, 0}}, {[
     {budapest, 919, 755}, {newYork, 370, 494}, {paris, 1079, 688}, {jerusalem, 550, 778}, {moscow, 1078, 574},
     {london, 431, 637}, {rome, 725, 684}, {stockholm, 925, 646}, {sydney, 127, 595}]
     , [{Ref0, 808, 572}, {Ref1, 365, 565}], [{Ref2, 1166, 671}], 1000}, make_ref()}),
-  missile:start_link({{{0, 0.8}, {9, 0}, {0, 0}}, {[
+  missile:start_link({{{0, GRAVITY}, {3, 0}, {0, 0}}, {[
     {budapest, 919, 755}, {newYork, 370, 494}, {paris, 1079, 688}, {jerusalem, 550, 778}, {moscow, 1078, 574},
     {london, 431, 637}, {rome, 725, 684}, {stockholm, 925, 646}, {sydney, 127, 595}]
     , [{Ref0, 808, 572}, {Ref1, 365, 565}], [{Ref2, 1166, 671}], 1000}, make_ref()}),
-  missile:start_link({{{0, 0.8}, {18, 0}, {0, 0}}, {[
+  missile:start_link({{{0, GRAVITY}, {4, 0}, {0, 0}}, {[
     {budapest, 919, 755}, {newYork, 370, 494}, {paris, 1079, 688}, {jerusalem, 550, 778}, {moscow, 1078, 574},
     {london, 431, 637}, {rome, 725, 684}, {stockholm, 925, 646}, {sydney, 127, 595}]
     , [{Ref0, 808, 572}, {Ref1, 365, 565}], [{Ref2, 1166, 671}], 1000}, make_ref()}),
-  missile:start_link({{{0, 0.8}, {11, 0}, {0, 0}}, {[
+  missile:start_link({{{0, GRAVITY}, {11, 0}, {0, 0}}, {[
     {budapest, 919, 755}, {newYork, 370, 494}, {paris, 1079, 688}, {jerusalem, 550, 778}, {moscow, 1078, 574},
     {london, 431, 637}, {rome, 725, 684}, {stockholm, 925, 646}, {sydney, 127, 595}]
     , [{Ref0, 808, 572}, {Ref1, 365, 565}], [{Ref2, 1166, 671}], 1000}, make_ref()}),
   timer:sleep(1000),
-  missile:start_link({{{0, 0.8}, {14, 0}, {0, 0}}, {[
+  missile:start_link({{{0, GRAVITY}, {14, 0}, {0, 0}}, {[
     {budapest, 919, 755}, {newYork, 370, 494}, {paris, 1079, 688}, {jerusalem, 550, 778}, {moscow, 1078, 574},
     {london, 431, 637}, {rome, 725, 684}, {stockholm, 925, 646}, {sydney, 127, 595}]
     , [{Ref0, 808, 572}, {Ref1, 365, 565}], [{Ref2, 1166, 671}], 1000}, make_ref()}).

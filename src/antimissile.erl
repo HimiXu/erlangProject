@@ -14,7 +14,7 @@
 -export([start_link/1]).
 -export([tick/2]).
 -export([init/1, callback_mode/0, terminate/3]).
--export([intercepting/3, out/3, successful/3]).
+-export([intercepting/3]).
 
 start_link({{Acceleration, Velocity, Position}, PxMax, Ref}) ->
   Name = list_to_atom(lists:append("anti-missile", ref_to_list(Ref))),
@@ -25,7 +25,7 @@ tick(Ref, TimeDiff) ->
   gen_statem:cast(Name, {tick, TimeDiff}).
 
 init({{Acceleration, Velocity, Position}, PxMax, Ref}) ->
-  mclock:register(antimissile,Ref),
+  mclock:register(antimissile, Ref),
   {ok, intercepting, {{Acceleration, Velocity, Position}, PxMax, Ref}}.
 
 callback_mode() ->
@@ -38,23 +38,23 @@ intercepting(cast, {tick, TimeDiff}, {{Acceleration, Velocity, Position}, PxMax,
   case HitState of
     nohit -> Angle = calcAngle(Velocity),
       NextState = intercepting,
-      Status = {NextState, NextVelocity, NextPosition, Angle};
+      Status = {NextState, NextVelocity, NextPosition, Angle},
+      node_server:updateStatus({antimissile, Ref, Status}),
+      {next_state, NextState, {{Acceleration, NextVelocity, NextPosition}, PxMax, Ref}};
+
     {hitmissile, MissileRef} -> NextState = successful,
       Status = {NextState, NextPosition},
-      mclock:unregister(antimissile,Ref),
-      missile:interception(MissileRef);
+      mclock:unregister(antimissile, Ref),
+      missile:interception(MissileRef),
+      node_server:updateStatus({antimissile, Ref, Status}),
+      {stop, normal};
     hitsky -> NextState = out,
-      mclock:unregister(antimissile,Ref),
-      Status = {NextState, NextPosition}
-  end,
-  node_server:updateStatus({antimissile, Ref, Status}),
-  {next_state, NextState, {{Acceleration, NextVelocity, NextPosition}, PxMax, Ref}}.
-successful(enter, _State, {_, _, _Ref}) ->
-  {stop, successful}.
-out(enter, _State, {_, _, _Ref}) ->
-  {stop, out}.
-terminate(Reason, _State, {_, _, Ref}) ->
-  io:format("Anti-missile ~p terminated. Reason: ~p~n", [Ref, Reason]),
+      mclock:unregister(antimissile, Ref),
+      Status = {NextState, NextPosition},
+      node_server:updateStatus({antimissile, Ref, Status}),
+      {stop, normal}
+  end.
+terminate(_Reason, _State, _Data) ->
   ok.
 
 updatePosition({Vx, Vy}, {Px, Py}, TimeDiff) ->

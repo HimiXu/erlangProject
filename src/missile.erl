@@ -15,7 +15,7 @@
 -export([start_link/1]).
 -export([tick/2, interception/1]).
 -export([init/1, callback_mode/0, terminate/3]).
--export([falling/3, exploded/3, intercepted/3]).
+-export([falling/3]).
 
 start_link({{Acceleration, Velocity, Position}, {Cities, Launchers, Radars, Ground}, Ref}) ->
   Name = list_to_atom(lists:append("missile", ref_to_list(Ref))),
@@ -29,7 +29,7 @@ interception(Ref) ->
   gen_statem:cast(Name, interception).
 
 init({{Acceleration, Velocity, Position}, {Cities, Launchers, Radars, Ground}, Ref}) ->
-  mclock:register(missile,Ref),
+  mclock:register(missile, Ref),
   {ok, falling, {{Acceleration, Velocity, Position}, {Cities, Launchers, Radars, Ground}, Ref}}.
 
 callback_mode() ->
@@ -41,36 +41,38 @@ falling(cast, {tick, TimeDiff}, {{Acceleration, Velocity, Position}, {Cities, La
   case HitState of
     nohit -> Angle = calcAngle(Velocity),
       NextState = falling,
-      Status = {NextState, NextVelocity, NextPosition, Angle};
+      Status = {NextState, NextVelocity, NextPosition, Angle},
+      node_server:updateStatus({missile, Ref, Status}),
+      {next_state, NextState, {{Acceleration, NextVelocity, NextPosition}, {Cities, Launchers, Radars, Ground}, Ref}};
     {hitcity, CityName} -> NextState = exploded,
       Status = {NextState, NextPosition},
-      mclock:unregister(missile,Ref),
-      city:hit(CityName);
+      mclock:unregister(missile, Ref),
+      city:hit(CityName),
+      node_server:updateStatus({missile, Ref, Status}),
+      {stop, normal};
     {hitlauncher, LauncherRef} -> NextState = exploded,
       Status = {NextState, NextPosition},
-      mclock:unregister(missile,Ref),
-      launcher:hit(LauncherRef);
+      mclock:unregister(missile, Ref),
+      launcher:hit(LauncherRef),
+      node_server:updateStatus({missile, Ref, Status}),
+      {stop, normal};
     {hitradar, RadarRef} -> NextState = exploded,
       Status = {NextState, NextPosition},
-      mclock:unregister(missile,Ref),
-      radar:hit(RadarRef);
+      mclock:unregister(missile, Ref),
+      radar:hit(RadarRef),
+      node_server:updateStatus({missile, Ref, Status}),
+      {stop, normal};
     hitground -> NextState = exploded,
       Status = {NextState, NextPosition},
-      mclock:unregister(missile,Ref)
-  end,
-  %% TODO
-  node_server:updateStatus({missile, Ref, Status}),
-  {next_state, NextState, {{Acceleration, NextVelocity, NextPosition}, {Cities, Launchers, Radars, Ground}, Ref}};
-falling(cast, interception, {{Acceleration, Velocity, Position}, {Cities, Launchers, Radars, Ground}, Ref}) ->
+      mclock:unregister(missile, Ref),
+      node_server:updateStatus({missile, Ref, Status}),
+      {stop, normal}
+  end;
+falling(cast, interception, {{_Acceleration, _Velocity, Position}, _Targets, Ref}) ->
   node_server:updateStatus({missile, Ref, {intercepted, Position}}),
-  mclock:unregister(missile,Ref),
-  {next_state, intercepted, {{Acceleration, Velocity, Position}, {Cities, Launchers, Radars, Ground}, Ref}}.
-exploded(enter, _State, {_, _, _Ref}) ->
-  {stop, exploded}.
-intercepted(enter, _State, {_, _, _Ref}) ->
-  {stop, intercepted}.
-terminate(Reason, _State, {_, _, Ref}) ->
-  io:format("Missile ~p terminated. Reason: ~p~n", [Ref, Reason]),
+  mclock:unregister(missile, Ref),
+  {stop, normal}.
+terminate(_Reason, _State, _Data) ->
   ok.
 
 updatePosition({Vx, Vy}, {Px, Py}, TimeDiff) ->

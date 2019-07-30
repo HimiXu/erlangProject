@@ -17,7 +17,7 @@
 -export([idle/3]).
 
 start_link(TimeDiff) ->
-  ClockPID = spawn(fun F() -> timer:sleep(TimeDiff*100), mclock:tick(TimeDiff), F() end),
+  ClockPID = spawn(fun F() -> timer:sleep(TimeDiff*5), mclock:tick(TimeDiff), F() end),
   gen_statem:start_link({local, mclock}, ?MODULE, {ClockPID, TimeDiff}, []).
 
 tick(TimeDiff) ->

@@ -23,7 +23,7 @@ init(ServerInfo) ->                 %%TODO: see what kind of information of the 
 
 
 sendingPacketsController(ServerInfo) -> %TODO: remove Iteration
-  timer:sleep(30), %%TODO: set The refresh time between sends
+  timer:sleep(20), %%TODO: set The refresh time between sends
 
   spawn_link(fun()-> getQuarterDataAndSend(1, ServerInfo) end),
   spawn_link(fun()-> getQuarterDataAndSend(2, ServerInfo) end),

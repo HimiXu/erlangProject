@@ -125,11 +125,11 @@ handle_cast({updateStatus, antimissile, Ref, {successful, Position}}, Tables) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 handle_call(update, _From, Tables) ->
-  Missiles=qlc:eval(qlc: q([ {round(X), round(Y), Angle} || {_Ref, {falling, _Velocity, {X,Y}, Angle}} <- ets:table(maps:get(mt, Tables, error))])),
-  AntiMissiles = qlc:eval(qlc: q([ {round(X), round(Y), Angle} || {_Ref, {intercepting, _Velocity, {X,Y}, Angle}} <- ets:table(maps:get(amt, Tables, error))])),
-  Cities = qlc:eval(qlc: q([ {Name, Status} || {Name, {Status, _Position}} <- ets:table(maps:get(ct, Tables, error))])),
-  Radars = qlc:eval(qlc: q([ {Name, Status} || {Name, {Status, _Position}} <- ets:table(maps:get(rt, Tables, error))])),
-  Launchers = qlc:eval(qlc: q([ {Name, Status} || {Name, {Status, _Position}} <- ets:table(maps:get(lt, Tables, error))])),
+  Missiles=qlc:e(qlc: q([ {round(X), round(Y), Angle} || {_Ref, {falling, _Velocity, {X,Y}, Angle}} <- ets:table(maps:get(mt, Tables, error))])),
+  AntiMissiles = qlc:e(qlc: q([ {round(X), round(Y), Angle} || {_Ref, {intercepting, _Velocity, {X,Y}, Angle}} <- ets:table(maps:get(amt, Tables, error))])),
+  Cities = qlc:e(qlc: q([ {Name, Status} || {Name, {Status, _Position}} <- ets:table(maps:get(ct, Tables, error))])),
+  Radars = qlc:e(qlc: q([ {Name, Status} || {Name, {Status, _Position}} <- ets:table(maps:get(rt, Tables, error))])),
+  Launchers = qlc:e(qlc: q([ {Name, Status} || {Name, {Status, _Position}} <- ets:table(maps:get(lt, Tables, error))])),
   Explosions = lists:map ( fun ({X,Y}) -> {round(X), round(Y)} end,  maps:get(explosions, Tables, error)),
   Interceptions = lists:map ( fun ({X,Y}) -> {round(X), round(Y)} end,  maps:get(interceptions, Tables, error)),
   %Missiles = ets:tab2list(maps:get(mt, Tables, error)),
