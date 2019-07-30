@@ -12,7 +12,7 @@
 -behaviour(gen_statem).
 
 %% API
--export([start_link/0]).
+-export([start_link/1]).
 
 %% gen_statem callbacks
 -export([
@@ -26,11 +26,11 @@
 
 
 
-start_link() ->
-  gen_statem:start_link({local, ?MODULE}, ?MODULE, [], []).
+start_link(ServerInfo) ->
+  gen_statem:start_link({local, ?MODULE}, ?MODULE, [ServerInfo], []).
 
 
-init([]) ->
+init([ServerInfo]) ->
   wx:new(),
   WxEnv = wx:get_env(),
   Frame = wxFrame:new(wx:null(), -1, "world :D", [{size,{1200, 850}}]),
@@ -40,7 +40,7 @@ init([]) ->
   MissileAndExplosionImages = loadMissileAndExplosionImages(),
   RadarsImages=loadRadarsImages(),
   LaunchersImages=loadLaunchersImages(),
-  %spawn_link(fun()->draw_buttuns(Panel,WxEnv) end), %
+  spawn_link(fun()-> draw_buttons(Panel, WxEnv, ServerInfo) end), %
   wxFrame:show(Frame),
   wxPanel:connect(Canvas, paint, []),
   Background =wxImage:new("include/worldBackground.png"), %background
@@ -62,6 +62,7 @@ packetsDeliver(info, _OldState, Data) ->
   {keep_state, Data};
 
 packetsDeliver(cast, PacketData, Data) ->
+  T0=erlang:timestamp(),
   NumOfPacketsDelivered=maps:get(numOfPacketsDelivered, Data),
   NewData=
     if
@@ -73,9 +74,14 @@ packetsDeliver(cast, PacketData, Data) ->
     if
       NewNumOfPacketsDelivered =:= 4 ->
         finishDrawing(NewData),
-        %%erlang:garbage_collect(),
+        T2=erlang:timestamp(),
+        io:format("runtime==============================================~p  microseconds~n",
+          [timer:now_diff(T2,T0)]),
         {keep_state, NewData#{numOfPacketsDelivered := 0}};
       true ->
+        T2=erlang:timestamp(),
+        io:format("runtime==============================================~p  microseconds~n",
+          [timer:now_diff(T2,T0)]),
         {keep_state, NewData}
     end.
 
@@ -94,25 +100,25 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %%returns map of bitmaps of the cities images
 loadCitiesImages()->
   #{
-    budapest    => wxBitmap:new(wxImage:new("include/budapestE.png")),
-    jerusalem   => wxBitmap:new(wxImage:new("include/jerusalemE.png")),
-    london      => wxBitmap:new(wxImage:new("include/londonE.png")),
-    moscow      => wxBitmap:new(wxImage:new("include/moscowE.png")),
-    newYork     => wxBitmap:new(wxImage:new("include/newYorkE .png")),
-    paris       => wxBitmap:new(wxImage:new("include/ParisE.png")),
-    rome        => wxBitmap:new(wxImage:new("include/romeE.png")),
-    stockholm   => wxBitmap:new(wxImage:new("include/stockholmE.png")),
-    sydney      => wxBitmap:new(wxImage:new("include/sydneyE.png")),
-    washington  => wxBitmap:new(wxImage:new("include/WashingtonE.png"))
+    budapest    => {wxBitmap:new(wxImage:new("include/budapestE.png")),847, 687},
+    jerusalem   => {wxBitmap:new(wxImage:new("include/jerusalemE.png")), 478, 726},
+    london      => {wxBitmap:new(wxImage:new("include/londonE.png")), 398, 590},
+    moscow      => {wxBitmap:new(wxImage:new("include/moscowE.png")), 1023, 501},
+    newYork     => {wxBitmap:new(wxImage:new("include/newYorkE .png")), 328, 437},
+    paris       => {wxBitmap:new(wxImage:new("include/ParisE.png")), 1035, 608},
+    rome        => {wxBitmap:new(wxImage:new("include/romeE.png")), 676, 641},
+    stockholm   => {wxBitmap:new(wxImage:new("include/stockholmE.png")), 870, 592},
+    sydney      => {wxBitmap:new(wxImage:new("include/sydneyE.png")), 74, 536},
+    washington  => {wxBitmap:new(wxImage:new("include/WashingtonE.png")), 423, 371}
   }.
 
 %%returns map of bitmaps of the radars images
 loadRadarsImages()->
   #{
-    1    => wxBitmap:new(wxImage:new("include/radar1.png")),
-    2    => wxBitmap:new(wxImage:new("include/radar2.png")),
-    3    => wxBitmap:new(wxImage:new("include/radar3.png")),
-    4    => wxBitmap:new(wxImage:new("include/radar4.png"))
+    1    => {wxBitmap:new(wxImage:new("include/radar1.png")), 1138, 625},
+    2    => {wxBitmap:new(wxImage:new("include/radar2.png")), 736, 571},
+    3    => {wxBitmap:new(wxImage:new("include/radar3.png")), 169, 629},
+    4    => {wxBitmap:new(wxImage:new("include/radar4.png")), 643, 410}
 %%    radar1    => wxBitmap:new(wxImage:new("include/radar1.png")),
 %%    radar2    => wxBitmap:new(wxImage:new("include/radar2.png")),
 %%    radar3    => wxBitmap:new(wxImage:new("include/radar3.png")),
@@ -122,10 +128,10 @@ loadRadarsImages()->
 %%returns map of bitmaps of the launchers images
 loadLaunchersImages()->
   #{
-    1 => wxBitmap:new(wxImage:new("include/launcher1.png")),
-    2 => wxBitmap:new(wxImage:new("include/launcher2.png")),
-    3 => wxBitmap:new(wxImage:new("include/launcher3.png")),
-    4 => wxBitmap:new(wxImage:new("include/launcher4.png"))
+    1 => {wxBitmap:new(wxImage:new("include/launcher1.png")), 777, 544},
+    2 => {wxBitmap:new(wxImage:new("include/launcher2.png")), 326, 534},
+    3 => {wxBitmap:new(wxImage:new("include/launcher3.png")), 1105, 728},
+    4 => {wxBitmap:new(wxImage:new("include/launcher4.png")), 16, 680}
 %%    launcher1 => wxBitmap:new(wxImage:new("include/launcher1.png")),
 %%    launcher2 => wxBitmap:new(wxImage:new("include/launcher2.png")),
 %%    launcher3 => wxBitmap:new(wxImage:new("include/launcher3.png")),
@@ -140,6 +146,7 @@ loadMissileAndExplosionImages()->
     wxBitmap:new(wxImage:new("include/interception.png")),
     wxBitmap:new(wxImage:new("include/explode.png"))
   }.
+
 
 preparationForPacketDeliver (Data) ->
   BackgroundBitmap=maps:get(backgroundBitmap, Data),
@@ -160,9 +167,11 @@ drawCitiesOrRadarsOrLaunchers(WxEnv,BufferDC, Images, [ElementData|OtherElements
     destroyed ->
       drawCitiesOrRadarsOrLaunchers (WxEnv, BufferDC, Images, OtherElementsData);
     alive ->
-      wxDC:drawBitmap(BufferDC, maps:get(element(1, ElementData),Images), {0,0}),
+      Object=maps:get(element(1, ElementData), Images),
+      wxDC:drawBitmap(BufferDC, element(1, Object), {element(2, Object),element(3, Object)}),
       drawCitiesOrRadarsOrLaunchers (WxEnv, BufferDC, Images, OtherElementsData)
   end.
+
 
 %draw AntiMissiles function
 drawAntiMissiles (_WxEnv, _BufferDC, _MissileAndExplosionImages, []) ->
@@ -232,3 +241,22 @@ finishDrawing(Data) ->
   ClientDC=maps:get(clientDC, Data),
   wxBufferedDC:destroy(BufferDC),
   wxClientDC:destroy(ClientDC).
+
+
+
+draw_buttons(Panel, WxEnv, ServerInfo)->
+  wx:set_env(WxEnv),
+  MissilesSpeedRadioBox=wxRadioBox:new(Panel, 1, "Missiles Speed", {40,700}, {170,50}, ["Low", "Medium", "High"]),
+  MissilesQuantityRadioBox=wxRadioBox:new(Panel, 2, "Missiles Quantity", {250,700},{170,50}, ["Low", "Medium", "High"]),
+  DefensiveEfficiencyRadioBox=wxRadioBox:new(Panel, 3, "Defensive Efficiency", {460,700},{170,50}, ["Low", "Medium", "High"]),
+  wxButton:new(Panel, 4, [{label, "Apply Settings"},{pos, {840,700}},{size, {170,50}}]),
+  wxPanel:connect(Panel, command_button_clicked),
+  loop(ServerInfo, MissilesSpeedRadioBox, MissilesQuantityRadioBox, DefensiveEfficiencyRadioBox).
+
+loop(ServerInfo, MissilesSpeedRadioBox, MissilesQuantityRadioBox, DefensiveEfficiencyRadioBox)->
+  Settings = receive
+               #wx{id = 4, event=#wxCommand{type = command_button_clicked}} ->
+                 {wxRadioBox:getSelection(MissilesSpeedRadioBox), wxRadioBox:getSelection(MissilesQuantityRadioBox), wxRadioBox:getSelection(DefensiveEfficiencyRadioBox)}
+             end,
+  ServerInfo ! Settings,
+  loop(ServerInfo, MissilesSpeedRadioBox, MissilesQuantityRadioBox, DefensiveEfficiencyRadioBox).
