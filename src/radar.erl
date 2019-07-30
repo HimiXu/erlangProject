@@ -30,7 +30,7 @@
 %%  gen_statem:cast(Name, tick).
 
 start_link({Position, MissileTimeDiff, Launchers, RefreshT, Ref}) ->
-  ClockPID = spawn(fun F() -> timer:sleep(RefreshT * 100), radar:tick(Ref), F() end),
+  ClockPID = spawn(fun F() -> timer:sleep(RefreshT * 300), radar:tick(Ref), F() end),
   Name = list_to_atom(lists:append("radar", [Ref])),
   {Ref, Name, gen_statem:start_link({local, Name}, ?MODULE, {Position, MissileTimeDiff, Launchers, ClockPID, Ref}, [])}.
 
@@ -66,9 +66,11 @@ terminate(Reason, _State, {_, _, _, _, _, Ref}) ->
 
 calcTargets([], _MissileTimeDiff, Targets) -> Targets;
 calcTargets([{{Vx, Vy}, {Px, Py}} | Missiles], MissileTimeDiff, Targets) ->
-  DeltaT = 15 * MissileTimeDiff,
+  DeltaT = rand:uniform(20) * MissileTimeDiff,
+  %% TODO add define
+  GRAVITY = 0.1,
   PxT = Px + Vx * DeltaT,
-  PyT = Py + Vy * DeltaT + (0.1 * DeltaT * DeltaT) / 2,
+  PyT = Py + Vy * DeltaT + (GRAVITY * DeltaT * DeltaT) / 2,
   calcTargets(Missiles, MissileTimeDiff, [{{PxT, PyT}, DeltaT} | Targets]).
 
 calcSight({Px, Py}) ->

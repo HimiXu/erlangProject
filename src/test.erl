@@ -40,6 +40,8 @@ test() ->
   {Ref1, _, _} = launcher:start_link({{365, 565}, 1200, 2}),
   {Ref2, _, _} = radar:start_link({{1166, 671}, 1, [Ref0, Ref1], 1, 1}),
   radar:start_link({{753, 596}, 1, [Ref0, Ref1], 1, 2}),
+  radar:start_link({{189, 652}, 1, [Ref0, Ref1], 1,3 }),
+  radar:start_link({{658, 440}, 1, [Ref0, Ref1], 1,4 }),
   mclock:start_link(1),
   GRAVITY = 0.1,
   missile:start_link({{{0, GRAVITY}, {2, 0}, {0, 0}}, {[
