@@ -62,6 +62,8 @@ packetsDeliver(info, _OldState, Data) ->
   {keep_state, Data};
 
 packetsDeliver(cast, PacketData, Data) ->
+  io:format("DATA==============================================~p~n",
+    [PacketData]),
   T0=erlang:timestamp(),
   NumOfPacketsDelivered=maps:get(numOfPacketsDelivered, Data),
   NewData=
@@ -179,7 +181,7 @@ drawAntiMissiles (_WxEnv, _BufferDC, _MissileAndExplosionImages, []) ->
 
 drawAntiMissiles (WxEnv, BufferDC, MissileAndExplosionImages, [{X, Y, Angle}|OtherAntiMissiles]) ->
   %wx:set_env(WxEnv),
-  Image= wxImage:rotate (element(1,MissileAndExplosionImages), Angle, {31, 48}), %%rotate(This, Angle, Centre_of_rotation) %%TODO: check the angle unit, make sure you choose the right center
+  Image= wxImage:rotate (element(1,MissileAndExplosionImages), Angle/(2*math:pi()), {31, 48}), %%rotate(This, Angle, Centre_of_rotation) %%TODO: check the angle unit, make sure you choose the right center
   Bitmap= wxBitmap:new(Image),
   wxDC:drawBitmap(BufferDC, Bitmap, {X,Y}), %%TODO: check maybe it is the opposite
   wxBitmap:destroy(Bitmap),
@@ -193,7 +195,7 @@ drawMissiles (_WxEnv, _BufferDC, _MissileAndExplosionImages, []) ->
 
 drawMissiles (WxEnv, BufferDC, MissileAndExplosionImages, [{X, Y, Angle}|OtherMissiles]) ->
   %wx:set_env(WxEnv),
-  Image= wxImage:rotate (element(2,MissileAndExplosionImages), Angle, {26, 42}), %%rotate(This, Angle, Centre_of_rotation) %%TODO: check the angle unit, make sure you choose the right center
+  Image= wxImage:rotate (element(2,MissileAndExplosionImages), Angle/(2*math:pi()), {26, 42}), %%rotate(This, Angle, Centre_of_rotation) %%TODO: check the angle unit, make sure you choose the right center
   Bitmap= wxBitmap:new(Image),
   wxDC:drawBitmap(BufferDC, Bitmap, {X,Y}), %%TODO: check maybe it is the opposite
   wxBitmap:destroy(Bitmap),
