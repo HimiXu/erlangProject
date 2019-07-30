@@ -74,4 +74,7 @@ assesHit({Px, Py}, [{MissileRef, PxM, PyM} | Missiles], PxMax) ->
   end.
 
 calcAngle({Vx, Vy}) ->
-  math:atan(Vy / Vx).
+  if
+    (Vx >= 0 andalso Vy >= 0 ) orelse (Vx > 0 andalso Vy < 0 )  -> (0.5*math:pi())-math:atan(Vy / Vx) ;
+    true -> (1.5*math:pi())-math:atan(Vy / Vx)
+  end.
