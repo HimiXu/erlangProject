@@ -33,7 +33,7 @@ start_link(ServerInfo) ->
 init([ServerInfo]) ->
   wx:new(),
   WxEnv = wx:get_env(),
-  Frame = wxFrame:new(wx:null(), -1, "world :D", [{size,{1200, 850}}]),
+  Frame = wxFrame:new(wx:null(), -1, "world :D", [{size,{1200, 940}}]),
   Panel  = wxPanel:new(Frame),
   Canvas = wxPanel:new(Panel, [{size, {1200, 800}}]),
   CitiesImages = loadCitiesImages(),
@@ -246,10 +246,10 @@ finishDrawing(Data) ->
 
 draw_buttons(Panel, WxEnv, ServerInfo)->
   wx:set_env(WxEnv),
-  MissilesSpeedRadioBox=wxRadioBox:new(Panel, 1, "Missiles Speed", {40,700}, {170,50}, ["Low", "Medium", "High"]),
-  MissilesQuantityRadioBox=wxRadioBox:new(Panel, 2, "Missiles Quantity", {250,700},{170,50}, ["Low", "Medium", "High"]),
-  DefensiveEfficiencyRadioBox=wxRadioBox:new(Panel, 3, "Defensive Efficiency", {460,700},{170,50}, ["Low", "Medium", "High"]),
-  wxButton:new(Panel, 4, [{label, "Apply Settings"},{pos, {840,700}},{size, {170,50}}]),
+  MissilesSpeedRadioBox=wxRadioBox:new(Panel, 1, "Missiles Speed", {40,800}, {170,100}, ["Low", "Medium", "High"]),
+  MissilesQuantityRadioBox=wxRadioBox:new(Panel, 2, "Missiles Quantity", {250,800},{170,100}, ["Low", "Medium", "High"]),
+  DefensiveEfficiencyRadioBox=wxRadioBox:new(Panel, 3, "Defensive Efficiency", {460,800},{170,100}, ["Low", "Medium", "High"]),
+  wxButton:new(Panel, 4, [{label, "Apply Settings"},{pos, {840,850}},{size, {170,50}}]),
   wxPanel:connect(Panel, command_button_clicked),
   loop(ServerInfo, MissilesSpeedRadioBox, MissilesQuantityRadioBox, DefensiveEfficiencyRadioBox).
 
