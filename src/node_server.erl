@@ -11,14 +11,14 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0]).
+-export([start_link/1]).
 -export([handle_cast/2, handle_call/3, init/1]).
 -export([updateStatus/1, getMissiles/0, getMissiles/1, update/0]).
 
 -include_lib("stdlib/include/qlc.hrl").
 
-start_link() ->
-  gen_server:start_link({local, node_server}, node_server, [], []).
+start_link(QuarterNumber) ->
+  gen_server:start_link({local, node_server}, node_server, [QuarterNumber], []).
 
 
 update() ->
@@ -33,7 +33,7 @@ getMissiles() ->
 getMissiles(Sight) ->
   gen_server:call(node_server, {getMissiles, Sight}).
 
-init(_Args) ->
+init([QuarterNumber]) ->
   MissilesTable = ets:new(missiles, [set]),
   AntiMissilesTable = ets:new(antimissiles, [set]),
   CitiesTable = ets:new(cities, [set]),
@@ -46,6 +46,7 @@ init(_Args) ->
     lt => LaunchersTable,
     explosions => [],
     interceptions => []},
+  test:test(), %TODO: delete after test
   {ok, Tables}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

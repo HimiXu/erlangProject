@@ -18,8 +18,6 @@
 %launcher Locations: {{808, 572}, launcher1}, {{365, 565}, launcher2}, {{1143, 753}, launcher3}, {{48, 708}, launcher4}
 
 test() ->
-  node_server:start_link(),
-  graphicConnection:init([]),
 
   city:start_link({{919, 755}, budapest}),
   city:start_link({{370, 494}, newYork}),
