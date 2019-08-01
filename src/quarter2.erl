@@ -21,9 +21,10 @@
 
 
 start(normal, _StartArgs) ->
-  node_server:start_link(2);
+  quarterSupervisor:start_link(2);
+
 start({failover, _Node}, _StartArgs)->
-  node_server:start_link(2).
+  quarterSupervisor:start_link(2).
+
 stop(_State) ->
   ok.
-

@@ -15,12 +15,28 @@
 -export([start/2,
   stop/1]).
 
+
+%%start(normal, [Node1, Node2, Node3, Node4]) ->
+%%  %%TODO: check how to call to Application
+%%  spawn_link(fun()-> rpc:call(Node1, quarterSupervisor, start_link,[1]) end),%  spawn_link(fun()-> rpc:call(Node1, application,start,[quarter1]) end),
+%%  spawn_link(fun()-> rpc:call(Node2, quarterSupervisor, start_link,[2]) end),%  spawn_link(fun()-> rpc:call(Node2, application,start,[quarter2]) end),
+%%  spawn_link(fun()-> rpc:call(Node3, quarterSupervisor, start_link,[3]) end),%  spawn_link(fun()-> rpc:call(Node3, application,start,[quarter3]) end),
+%%  spawn_link(fun()-> rpc:call(Node4, quarterSupervisor, start_link,[4]) end),%  spawn_link(fun()-> rpc:call(Node4, application,start,[quarter4]) end),
+%%  case graphicSupervisor:start_link() of
+%%    {ok, Pid} ->
+%%      {ok, Pid};
+%%    Error ->
+%%      Error
+%%  end.
+
+
+
 start(normal, [Node1, Node2, Node3, Node4]) ->
-  	rpc:call(Node1, node_server,start_link,[1]),
-  	rpc:call(Node2, node_server,start_link,[2]),
-  	rpc:call(Node3, node_server,start_link,[3]),
-  	rpc:call(Node4, node_server,start_link,[4]),
-  spawn_link(fun()-> graphic:init([graphicConnectionPID]) end),
+  spawn_link(fun()-> graphic:start_link(graphicConnectionPID) end),
+  spawn_link(fun()-> rpc:call(Node1, node_server,start_link,[1]) end),
+  spawn_link(fun()-> rpc:call(Node2, node_server,start_link,[2]) end),
+  spawn_link(fun()-> rpc:call(Node3, node_server,start_link,[3]) end),
+  spawn_link(fun()-> rpc:call(Node4, node_server,start_link,[4]) end),
   spawn_link(fun()-> graphicConnection:init() end).
 
 

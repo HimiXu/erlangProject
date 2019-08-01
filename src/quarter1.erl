@@ -21,10 +21,12 @@
 
 
 start(normal, _StartArgs) ->
-node_server:start_link(1);
+  io:format("started==============================================~p~n",
+    [111]),
+  quarterSupervisor:start_link(1);
+
 start({failover, _Node}, _StartArgs)->
-  node_server:start_link(1).
+  quarterSupervisor:start_link(1).
 
 stop(_State) ->
   ok.
-

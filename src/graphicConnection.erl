@@ -13,13 +13,12 @@
 -export([init/0]).
 
 
-init() ->                 %%TODO: see what kind of information of the Nodes server you need]
+init() ->                 %%TODO: see what kind of information of the Nodes server you need
   ChangeSettingsControllerPid = spawn_link(fun()->changeSettingsControllerPid() end),
   register(graphicConnectionPID, ChangeSettingsControllerPid), %TODO: maybe we will register it  as global
   timer:sleep(1000), %%TODO: see how much time is needed for the unit to be ready.
-  SendingPacketsControllerPid = spawn_link(fun()->sendingPacketsController() end). %Sending Packets Controller
-
-
+  spawn_link(fun()->sendingPacketsController() end), %Sending Packets Controller
+  {ok, self()}.
 
 
 sendingPacketsController() -> %TODO: remove Iteration
@@ -59,7 +58,6 @@ getQuarterDataAndSend(Quarter) -> %%TODO: set the connection to server when is p
           true -> {[], [],[], [],[], [], []}
         end
   end,
-  io:format("Data~p================================================= ~p~n", [PacketData]),
   gen_statem:cast(graphic, PacketData).
 
 
