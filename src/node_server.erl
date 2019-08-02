@@ -18,6 +18,7 @@
 -include_lib("stdlib/include/qlc.hrl").
 
 start_link(QuarterNumber) ->
+  io:format("Server up in node ~p~n", [QuarterNumber]),
   gen_server:start_link({local, node_server}, node_server, [QuarterNumber], []).
 
 
@@ -87,7 +88,7 @@ handle_cast({updateStatus, missile, Ref, {exploded, Position}}, Tables) ->
   io:format("Missile ~p exploded at ~p~n", [Ref, Position]),
   ets:delete(MissilesTable, Ref),
   Explosions = maps:get(explosions, Tables, error),
-  {noreply, Tables#{explosions => [Position| Explosions]}};
+  {noreply, Tables#{explosions => [{Position, 0} | Explosions]}};
 
 %----------------------------------------------------------------------------%
 handle_cast({updateStatus, missile, Ref, {intercepted, Position}}, Tables) ->
@@ -95,7 +96,7 @@ handle_cast({updateStatus, missile, Ref, {intercepted, Position}}, Tables) ->
   io:format("Missile ~p intercepted at ~p~n", [Ref, Position]),
   ets:delete(MissilesTable, Ref),
   Interceptions = maps:get(interceptions, Tables, error),
-  {noreply, Tables#{interceptions => [Position | Interceptions]}};
+  {noreply, Tables#{interceptions => [{Position, 0} | Interceptions]}};
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% MISSILE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -126,20 +127,18 @@ handle_cast({updateStatus, antimissile, Ref, {successful, Position}}, Tables) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 handle_call(update, _From, Tables) ->
-  Missiles=qlc:e(qlc: q([ {round(X), round(Y), Angle} || {_Ref, {falling, _Velocity, {X,Y}, Angle}} <- ets:table(maps:get(mt, Tables, error))])),
-  AntiMissiles = qlc:e(qlc: q([ {round(X), round(Y), Angle} || {_Ref, {intercepting, _Velocity, {X,Y}, Angle}} <- ets:table(maps:get(amt, Tables, error))])),
-  Cities = qlc:e(qlc: q([ {Name, Status} || {Name, {Status, _Position}} <- ets:table(maps:get(ct, Tables, error))])),
-  Radars = qlc:e(qlc: q([ {Name, Status} || {Name, {Status, _Position}} <- ets:table(maps:get(rt, Tables, error))])),
-  Launchers = qlc:e(qlc: q([ {Name, Status} || {Name, {Status, _Position}} <- ets:table(maps:get(lt, Tables, error))])),
-  Explosions = lists:map ( fun ({X,Y}) -> {round(X), round(Y)} end,  maps:get(explosions, Tables, error)),
-  Interceptions = lists:map ( fun ({X,Y}) -> {round(X), round(Y)} end,  maps:get(interceptions, Tables, error)),
-  %Missiles = ets:tab2list(maps:get(mt, Tables, error)),
-  %AntiMissiles = ets:tab2list(maps:get(amt, Tables, error)),
-  %Cities = ets:tab2list(maps:get(ct, Tables, error)),
-  %Radars = ets:tab2list(maps:get(rt, Tables, error)),
-  %Launchers = ets:tab2list(maps:get(lt, Tables, error)),
-  Packet = {Launchers, Radars, Cities, AntiMissiles,  Missiles, Interceptions, Explosions},
-  {reply, Packet, Tables#{explosions => [], interceptions => []}};
+  Missiles = qlc:e(qlc:q([{round(X), round(Y), Angle} || {_Ref, {falling, _Velocity, {X, Y}, Angle}} <- ets:table(maps:get(mt, Tables, error))])),
+  AntiMissiles = qlc:e(qlc:q([{round(X), round(Y), Angle} || {_Ref, {intercepting, _Velocity, {X, Y}, Angle}} <- ets:table(maps:get(amt, Tables, error))])),
+  Cities = qlc:e(qlc:q([{Name, Status} || {Name, {Status, _Position}} <- ets:table(maps:get(ct, Tables, error))])),
+  Radars = qlc:e(qlc:q([{Name, Status} || {Name, {Status, _Position}} <- ets:table(maps:get(rt, Tables, error))])),
+  Launchers = qlc:e(qlc:q([{Name, Status} || {Name, {Status, _Position}} <- ets:table(maps:get(lt, Tables, error))])),
+  Explosions = lists:map(fun({{X, Y}, _Counter}) -> {round(X), round(Y)} end, maps:get(explosions, Tables, error)),
+  Interceptions = lists:map(fun({{X, Y}, _Counter}) -> {round(X), round(Y)} end, maps:get(interceptions, Tables, error)),
+  MAX_FRAMES = 25,
+  NewExplosions = [{{X, Y}, Counter + 1} || {{X, Y}, Counter} <- Explosions, Counter < MAX_FRAMES],
+  NewInterceptions = [{{X, Y}, Counter + 1} || {{X, Y}, Counter} <- Interceptions, Counter < MAX_FRAMES],
+  Packet = {Launchers, Radars, Cities, AntiMissiles, Missiles, Interceptions, Explosions},
+  {reply, Packet, Tables#{explosions => NewExplosions, interceptions => NewInterceptions}};
 
 handle_call(getMissiles, _From, Tables) ->
   MissilesTable = maps:get(mt, Tables, error),
