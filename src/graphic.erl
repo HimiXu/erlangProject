@@ -193,7 +193,7 @@ drawMissiles (WxEnv, BufferDC, MissileAndExplosionImages, [{X, Y, Angle}|OtherMi
   wxDC:drawBitmap(BufferDC, Bitmap, {X,Y}), %%TODO: check maybe it is the opposite
   wxBitmap:destroy(Bitmap),
   wxImage:destroy(Image),
-  drawAntiMissiles (WxEnv, BufferDC, MissileAndExplosionImages, OtherMissiles).
+  drawMissiles (WxEnv, BufferDC, MissileAndExplosionImages, OtherMissiles).
 
 
 %draw Interceptions function
