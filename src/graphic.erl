@@ -62,8 +62,8 @@ packetsDeliver(info, _OldState, Data) ->
   {keep_state, Data};
 
 packetsDeliver(cast, PacketData, Data) ->
-  io:format("DATA==============================================~p~n",
-    [PacketData]),
+%%  io:format("DATA==============================================~p~n",
+%%    [PacketData]),
   NumOfPacketsDelivered=maps:get(numOfPacketsDelivered, Data),
   NewData=
     if
