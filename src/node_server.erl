@@ -47,7 +47,7 @@ init([QuarterNumber]) ->
     lt => LaunchersTable,
     explosions => [],
     interceptions => []},
-  test:test(), %TODO: delete after test
+  script:script(QuarterNumber), %TODO: delete after test
   {ok, Tables}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -78,14 +78,14 @@ handle_cast({updateStatus, radar, Ref, {Status, Position}}, Tables) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% MISSILE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 handle_cast({updateStatus, missile, Ref, {falling, Velocity, Position, Angle}}, Tables) ->
   MissilesTable = maps:get(mt, Tables, error),
-  io:format("Missile ~p is falling at ~p with velocity ~p~n", [Ref, Position, Velocity]),
+%%  io:format("Missile ~p is falling at ~p with velocity ~p~n", [Ref, Position, Velocity]),
   ets:insert(MissilesTable, {Ref, {falling, Velocity, Position, Angle}}),
   {noreply, Tables};
 
 %----------------------------------------------------------------------------%
 handle_cast({updateStatus, missile, Ref, {exploded, Position}}, Tables) ->
   MissilesTable = maps:get(mt, Tables, error),
-  io:format("Missile ~p exploded at ~p~n", [Ref, Position]),
+%%  io:format("Missile ~p exploded at ~p~n", [Ref, Position]),
   ets:delete(MissilesTable, Ref),
   Explosions = maps:get(explosions, Tables, error),
   {noreply, Tables#{explosions => [{Position, 0} | Explosions]}};
@@ -93,7 +93,7 @@ handle_cast({updateStatus, missile, Ref, {exploded, Position}}, Tables) ->
 %----------------------------------------------------------------------------%
 handle_cast({updateStatus, missile, Ref, {intercepted, Position}}, Tables) ->
   MissilesTable = maps:get(mt, Tables, error),
-  io:format("Missile ~p intercepted at ~p~n", [Ref, Position]),
+%%  io:format("Missile ~p intercepted at ~p~n", [Ref, Position]),
   ets:delete(MissilesTable, Ref),
   Interceptions = maps:get(interceptions, Tables, error),
   {noreply, Tables#{interceptions => [{Position, 0} | Interceptions]}};
@@ -105,21 +105,21 @@ handle_cast({updateStatus, missile, Ref, {intercepted, Position}}, Tables) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ANTIMISSILE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 handle_cast({updateStatus, antimissile, Ref, {intercepting, Velocity, Position, Angle}}, Tables) ->
   AntiMissilesTable = maps:get(amt, Tables, error),
-  io:format("Anti-missile ~p is intercepting at ~p with velocity ~p~n", [Ref, Position, Velocity]),
+%%  io:format("Anti-missile ~p is intercepting at ~p with velocity ~p~n", [Ref, Position, Velocity]),
   ets:insert(AntiMissilesTable, {Ref, {intercepting, Velocity, Position, Angle}}),
   {noreply, Tables};
 
 %----------------------------------------------------------------------------%
 handle_cast({updateStatus, antimissile, Ref, {out, _Position}}, Tables) ->
   AntiMissilesTable = maps:get(amt, Tables, error),
-  io:format("Anti-missile ~p is out of bounds ~n", [Ref]),
+%%  io:format("Anti-missile ~p is out of bounds ~n", [Ref]),
   ets:delete(AntiMissilesTable, Ref),
   {noreply, Tables};
 
 %----------------------------------------------------------------------------%
 handle_cast({updateStatus, antimissile, Ref, {successful, Position}}, Tables) ->
   AntiMissilesTable = maps:get(amt, Tables, error),
-  io:format("Anti-missile ~p successfully intercepted missile at ~p~n", [Ref, Position]),
+%%  io:format("Anti-missile ~p successfully intercepted missile at ~p~n", [Ref, Position]),
   ets:delete(AntiMissilesTable, Ref),
   {noreply, Tables}.
 
@@ -134,9 +134,9 @@ handle_call(update, _From, Tables) ->
   Launchers = qlc:e(qlc:q([{Name, Status} || {Name, {Status, _Position}} <- ets:table(maps:get(lt, Tables, error))])),
   Explosions = lists:map(fun({{X, Y}, _Counter}) -> {round(X), round(Y)} end, maps:get(explosions, Tables, error)),
   Interceptions = lists:map(fun({{X, Y}, _Counter}) -> {round(X), round(Y)} end, maps:get(interceptions, Tables, error)),
-  MAX_FRAMES = 25,
-  NewExplosions = [{{X, Y}, Counter + 1} || {{X, Y}, Counter} <- Explosions, Counter < MAX_FRAMES],
-  NewInterceptions = [{{X, Y}, Counter + 1} || {{X, Y}, Counter} <- Interceptions, Counter < MAX_FRAMES],
+  MAX_FRAMES = 4,
+  NewExplosions = [{{X, Y}, Counter + 1} || {{X, Y}, Counter} <- maps:get(explosions, Tables, error), Counter < MAX_FRAMES],
+  NewInterceptions = [{{X, Y}, Counter + 1} || {{X, Y}, Counter} <- maps:get(interceptions, Tables, error), Counter < MAX_FRAMES],
   Packet = {Launchers, Radars, Cities, AntiMissiles, Missiles, Interceptions, Explosions},
   {reply, Packet, Tables#{explosions => NewExplosions, interceptions => NewInterceptions}};
 

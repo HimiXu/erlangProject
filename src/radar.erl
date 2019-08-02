@@ -66,11 +66,13 @@ terminate(Reason, _State, {_, _, _, _, _, Ref}) ->
 
 calcTargets([], _MissileTimeDiff, Targets) -> Targets;
 calcTargets([{{Vx, Vy}, {Px, Py}} | Missiles], MissileTimeDiff, Targets) ->
-  DeltaT = lists:nth(rand:uniform(20), lists:seq(33, 52)) * MissileTimeDiff,
+  DeltaT = lists:nth(rand:uniform(20), lists:seq(12, 31)) * MissileTimeDiff,
   %% TODO add define
   GRAVITY = 0.065,
-  PxT = Px + Vx * DeltaT,
-  PyT = Py + Vy * DeltaT + (GRAVITY * DeltaT * DeltaT) / 2,
+  ErrorX = (rand:uniform(100) - 50) / 20,
+  ErrorY = (rand:uniform(100) - 50) / 20,
+  PxT = Px + (Vx + ErrorX) * DeltaT,
+  PyT = Py + (Vy + ErrorY) * DeltaT + (GRAVITY * DeltaT * DeltaT) / 2,
   calcTargets(Missiles, MissileTimeDiff, [{{PxT, PyT}, DeltaT} | Targets]).
 
 calcSight({Px, Py}) ->
