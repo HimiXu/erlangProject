@@ -38,37 +38,31 @@ falling(cast, {tick, TimeDiff}, {{Acceleration, Velocity, Position}, {Cities, La
   NextPosition = updatePosition(Velocity, Position, TimeDiff),
   NextVelocity = updateVelocity(Acceleration, Velocity, TimeDiff),
   HitState = assesHit(NextPosition, Cities, Launchers, Radars, Ground),
-  case HitState of
-    nohit -> Angle = calcAngle(Velocity),
+  if
+    HitState =:= nohit -> Angle = calcAngle(Velocity),
       NextState = falling,
       Status = {NextState, NextVelocity, NextPosition, Angle},
-      node_server:updateStatus({missile, Ref, Status}),
-      {next_state, NextState, {{Acceleration, NextVelocity, NextPosition}, {Cities, Launchers, Radars, Ground}, Ref}};
-    {hitcity, CityName} -> NextState = exploded,
-      Status = {NextState, NextPosition},
-      mclock:unregister(missile, Ref),
-      city:hit(CityName),
-      node_server:updateStatus({missile, Ref, Status}),
-      {stop, normal};
-    {hitlauncher, LauncherRef} -> NextState = exploded,
-      Status = {NextState, NextPosition},
-      mclock:unregister(missile, Ref),
-      launcher:hit(LauncherRef),
-      node_server:updateStatus({missile, Ref, Status}),
-      {stop, normal};
-    {hitradar, RadarRef} -> NextState = exploded,
-      Status = {NextState, NextPosition},
-      mclock:unregister(missile, Ref),
-      radar:hit(RadarRef),
-      node_server:updateStatus({missile, Ref, Status}),
-      {stop, normal};
-    hitground -> NextState = exploded,
-      Status = {NextState, NextPosition},
-      mclock:unregister(missile, Ref),
-      node_server:updateStatus({missile, Ref, Status}),
+      Result = node_server:updateStatus({missile, Ref, Status}),
+      if
+        Result =:= continue ->
+          {next_state, NextState, {{Acceleration, NextVelocity, NextPosition}, {Cities, Launchers, Radars, Ground}, Ref}};
+        Result =:= kill -> {stop, normal}
+      end;
+    true -> mclock:unregister(missile, Ref),
+      node_server:updateStatus({missile, Ref, {exploded, NextPosition}}),
+      case HitState of
+        {hitcity, CityName} ->
+          city:hit(CityName);
+        {hitlauncher, LauncherRef} ->
+          launcher:hit(LauncherRef);
+        {hitradar, RadarRef} ->
+          radar:hit(RadarRef);
+        hitground -> none
+      end,
       {stop, normal}
   end;
 falling(cast, interception, {{_Acceleration, _Velocity, Position}, _Targets, Ref}) ->
+  io:format("Interception~n"),
   node_server:updateStatus({missile, Ref, {intercepted, Position}}),
   mclock:unregister(missile, Ref),
   {stop, normal}.

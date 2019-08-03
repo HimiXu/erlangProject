@@ -39,9 +39,12 @@ intercepting(cast, {tick, TimeDiff}, {{Acceleration, Velocity, Position}, PxMax,
     nohit -> Angle = calcAngle(Velocity),
       NextState = intercepting,
       Status = {NextState, NextVelocity, NextPosition, Angle},
-      node_server:updateStatus({antimissile, Ref, Status}),
-      {next_state, NextState, {{Acceleration, NextVelocity, NextPosition}, PxMax, Ref}};
-
+      Result = node_server:updateStatus({antimissile, Ref, Status}),
+      if
+        Result =:= continue ->
+          {next_state, NextState, {{Acceleration, NextVelocity, NextPosition}, PxMax, Ref}};
+        Result =:= kill -> {stop, normal}
+      end;
     {hitmissile, MissileRef} -> NextState = successful,
       Status = {NextState, NextPosition},
       mclock:unregister(antimissile, Ref),
@@ -74,7 +77,11 @@ assesHit({Px, Py}, [{MissileRef, PxM, PyM} | Missiles], PxMax) ->
   end.
 
 calcAngle({Vx, Vy}) ->
+  if Vx =:= 0 ->
+    VxP = 0.0001;
+    true -> VxP = Vx
+  end,
   if
-    (Vx >= 0 andalso Vy >= 0 ) orelse (Vx > 0 andalso Vy < 0 )  -> (0.5*math:pi())-math:atan(Vy / Vx) ;
-    true -> (1.5*math:pi())-math:atan(Vy / Vx)
+    (VxP >= 0 andalso Vy >= 0) orelse (VxP > 0 andalso Vy < 0) -> (0.5 * math:pi()) - math:atan(Vy / VxP);
+    true -> (1.5 * math:pi()) - math:atan(Vy / VxP)
   end.

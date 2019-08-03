@@ -66,7 +66,7 @@ terminate(Reason, _State, {_, _, _, _, _, Ref}) ->
 
 calcTargets([], _MissileTimeDiff, Targets) -> Targets;
 calcTargets([{{Vx, Vy}, {Px, Py}} | Missiles], MissileTimeDiff, Targets) ->
-  DeltaT = lists:nth(rand:uniform(20), lists:seq(12, 31)) * MissileTimeDiff,
+  DeltaT = lists:nth(rand:uniform(20), lists:seq(23, 42)) * MissileTimeDiff,
   %% TODO add define
   GRAVITY = 0.065,
   ErrorX = (rand:uniform(100) - 50) / 20,
