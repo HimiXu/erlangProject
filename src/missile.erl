@@ -96,8 +96,8 @@ assesHit({Px, Py}, [{CityName, PxC, PyC} | Cities], Launchers, Radars, PyG) ->
   end.
 
 calcAngle({Vx, Vy}) ->
-  VxP = if Vx =:= 0 ->
-    0.01;
+  VxP = if abs(Vx) < 0.1 ->
+    (Vx / abs(Vx)) * 0.01;
           true -> Vx
         end,
   if
