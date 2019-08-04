@@ -10,7 +10,7 @@
 -author("raz").
 
 %% API
--export([script/1, crash_script/1, changeSetting_scripts/7]).
+-export([script/1, crash_script/1, changeSettings_script/7]).
 
 %cities Locations: {{919, 755}, budapest}, {370, 494}, newYork},{{1079, 688}, paris}, {{550, 778}, jerusalem}, {{1078, 574}, moscow},
 % {{431, 637}, london}, {{725, 684}, rome},{{925, 646}, stockholm}, {{127, 595}, sydney}, {{483, 425}, washington}
@@ -83,7 +83,7 @@ crash_script(Data) ->
   lists:foreach(fun({Name, {alive, Position}}) ->
     city:start_link({Position, Name}) end, Cities).
 
-changeSetting_scripts(NodeNum,{missilesSpeed, MissilesSpeedSlider}, {missilesQuantity, MissilesQuantitySlider}, {gravity, GravitySlider},
+changeSettings_script(NodeNum,{missilesSpeed, MissilesSpeedSlider}, {missilesQuantity, MissilesQuantitySlider}, {gravity, GravitySlider},
   {radarError, RadarErrorSlider}, {radarRange, RadarRangeSlider} ,{radarRefreshDelay, RadarRefreshDelay}) ->
   case NodeNum of
     1 -> %% AREA {0,600}/{0,400}
