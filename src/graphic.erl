@@ -241,17 +241,27 @@ finishDrawing(Data) ->
 
 draw_buttons(Panel, WxEnv, ServerInfo)->
   wx:set_env(WxEnv),
-  MissilesSpeedRadioBox=wxRadioBox:new(Panel, 1, "Missiles Speed", {40,800}, {170,100}, ["Low", "Medium", "High"]),
-  MissilesQuantityRadioBox=wxRadioBox:new(Panel, 2, "Missiles Quantity", {250,800},{170,100}, ["Low", "Medium", "High"]),
-  DefensiveEfficiencyRadioBox=wxRadioBox:new(Panel, 3, "Defensive Efficiency", {460,800},{170,100}, ["Low", "Medium", "High"]),
-  wxButton:new(Panel, 4, [{label, "Apply Settings"},{pos, {840,850}},{size, {170,50}}]),
+  MissilesSpeedSlider = wxSlider:new (Panel, 1, 5, 0, 10, [{pos, {200, 800}}, {size, {100, 20}}]),
+  MissilesQuantitySlider = wxSlider:new (Panel, 2, 5, 0, 10, [{pos, {200, 840}}, {size, {100, 20}}]),
+  GravitySlider = wxSlider:new (Panel, 3, 5, 0, 10, [{pos, {200, 880}}, {size, {100, 20}}]),
+  RadarErrorSlider = wxSlider:new (Panel, 4, 5, 0, 10, [{pos, {500, 800}}, {size, {100, 20}}]),
+  RadarRangeSlider = wxSlider:new (Panel, 5, 5, 0, 10, [{pos, {500, 840}}, {size, {100, 20}}]),
+  RadarRefreshDelay = wxSlider:new (Panel, 6, 5, 0, 10, [{pos, {500, 880}}, {size, {100, 20}}]),
+  wxButton:new(Panel, 7, [{label, "Apply Settings"},{pos, {840,850}},{size, {170,50}}]),
+  wxStaticText:new(Panel, 8, "MissilesSpeed:", [{pos, {50, 800}}, {size, {200, 20}}] ),
+  wxStaticText:new(Panel, 9, "Missiles Quantity:", [{pos, {50, 840}}, {size, {200, 20}}] ),
+  wxStaticText:new(Panel, 10, "Gravity:", [{pos, {50, 880}}, {size, {200, 20}}] ),
+  wxStaticText:new(Panel, 11, "Radar Error:", [{pos, {350, 840}}, {size, {200, 20}}] ),
+  wxStaticText:new(Panel, 12, "Radar Range:", [{pos, {350, 880}}, {size, {200, 20}}] ),
+  wxStaticText:new(Panel, 13, "Radar Refresh Delay:", [{pos, {350, 800}}, {size, {200, 20}}] ),
   wxPanel:connect(Panel, command_button_clicked),
-  loop(ServerInfo, MissilesSpeedRadioBox, MissilesQuantityRadioBox, DefensiveEfficiencyRadioBox).
+  loop(ServerInfo, MissilesSpeedSlider, MissilesQuantitySlider, GravitySlider, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay).
 
-loop(ServerInfo, MissilesSpeedRadioBox, MissilesQuantityRadioBox, DefensiveEfficiencyRadioBox)->
+loop(ServerInfo, MissilesSpeedSlider, MissilesQuantitySlider, GravitySlider, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay) ->
   Settings = receive
-               #wx{id = 4, event=#wxCommand{type = command_button_clicked}} ->
-                 {wxRadioBox:getSelection(MissilesSpeedRadioBox), wxRadioBox:getSelection(MissilesQuantityRadioBox), wxRadioBox:getSelection(DefensiveEfficiencyRadioBox)}
+               #wx{id = 7, event=#wxCommand{type = command_button_clicked}} ->
+                 {{missilesSpeed, wxSlider:getValue(MissilesSpeedSlider)}, {missilesQuantity, wxSlider:getValue(MissilesQuantitySlider)}, {gravity, wxSlider:getValue(GravitySlider)},
+                   {radarError, wxSlider:getValue(RadarErrorSlider)}, {radarRange, wxSlider:getValue(RadarRangeSlider)} ,{radarRefreshDelay, wxSlider:getValue(RadarRefreshDelay)}}
              end,
   ServerInfo ! Settings,
-  loop(ServerInfo, MissilesSpeedRadioBox, MissilesQuantityRadioBox, DefensiveEfficiencyRadioBox).
+  loop(ServerInfo, MissilesSpeedSlider, MissilesQuantitySlider, GravitySlider, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay).

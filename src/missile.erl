@@ -41,7 +41,7 @@ falling(cast, {tick, TimeDiff}, {{Acceleration, Velocity, Position}, {Cities, La
   if
     HitState =:= nohit -> Angle = calcAngle(Velocity),
       NextState = falling,
-      Status = {NextState, NextVelocity, NextPosition, Angle},
+      Status = {NextState, NextVelocity, NextPosition, Angle, Acceleration},
       Result = node_server:updateStatus({missile, Ref, Status}),
       if
         Result =:= continue ->

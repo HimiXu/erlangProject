@@ -71,7 +71,7 @@ crash_script(Data) ->
   Radars = maps:get(radar, Data),
   Cities = maps:get(city, Data),
   lists:foreach(fun({Ref, {falling, Velocity, Position, _Angle}}) ->
-    mclock:generateMissile(Ref, Velocity, Position) end, Missiles),
+    mclock:generateMissile(Ref, {0, 0.065}, Velocity, Position) end, Missiles), %%TODO: see how the change {0, 0.065} to be the actual ACCELERATION
   lists:foreach(fun({Ref, {intercepting, Velocity, Position, _Angle}}) ->
     mclock:generateAntiMissile(Ref, Velocity, Position) end, AntiMissiles),
   LauncherRefs = lists:map(fun({Ref, {alive, Position}}) ->
@@ -82,6 +82,21 @@ crash_script(Data) ->
                 end, Radars),
   lists:foreach(fun({Name, {alive, Position}}) ->
     city:start_link({Position, Name}) end, Cities).
+
+changeSetting_scripts(NodeNum,{missilesSpeed, MissilesSpeedSlider}, {missilesQuantity, MissilesQuantitySlider}, {gravity, GravitySlider},
+  {radarError, RadarErrorSlider}, {radarRange, RadarRangeSlider} ,{radarRefreshDelay, RadarRefreshDelay}) ->
+  case NodeNum of
+    1 -> %% AREA {0,600}/{0,400}
+      gen_statem:cast(mclock, {settingUpdate, MissilesQuantitySlider, MissilesSpeedSlider, GravitySlider});
+    2 -> %% AREA {600,1200}/{0,400}
+      gen_statem:cast(mclock, {settingUpdate, MissilesQuantitySlider, MissilesSpeedSlider, GravitySlider});
+    3 -> %% AREA {0,600}/{400/800}
+      gen_statem:cast(mclock, {settingUpdate, MissilesQuantitySlider, MissilesSpeedSlider, GravitySlider});
+    4 -> %% AREA {600,1200}/{400/800}
+      gen_statem:cast(mclock, {settingUpdate, MissilesQuantitySlider, MissilesSpeedSlider, GravitySlider})
+  end.
+
+
 
 %%  {Ref0, _, _} = launcher:start_link({{550, 1000}, 1000, make_ref()}),
 %%  {Ref1, _, _} = launcher:start_link({{450, 1000}, 1000, make_ref()}),

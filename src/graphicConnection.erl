@@ -21,7 +21,7 @@ init() ->                 %%TODO: see what kind of information of the Nodes serv
   {ok, self()}.
 
 
-sendingPacketsController() -> %TODO: remove Iteration
+sendingPacketsController() ->
   timer:sleep(20), %%TODO: set The refresh time between sends
 
   spawn_link(fun()-> getQuarterDataAndSend(1) end),
@@ -30,31 +30,43 @@ sendingPacketsController() -> %TODO: remove Iteration
   spawn_link(fun()-> getQuarterDataAndSend(4) end),
   sendingPacketsController().
 
-getQuarterDataAndSend(Quarter) -> %%TODO: set the connection to server when is possible
+getQuarterDataAndSend(Quarter) ->
   Length=length(nodes()),
   case Quarter of
     1 ->
       PacketData=
         if
-          Length >= 1 -> gen_server:call({node_server, lists:nth(1,nodes())}, update); %TODO: check: maybe we need to define the servers as global and call here with {global,GlobalName}
+          Length >= 1 ->       try  gen_server:call({node_server, lists:nth(1,nodes())}, update) of
+                                 Data -> Data
+                               catch  _:_->  {[], [],[], [],[], [], []}
+                               end;
           true -> {[], [],[], [],[], [], []}
         end;
     2 ->
       PacketData=
         if
-          Length >= 2 -> gen_server:call({node_server, lists:nth(2,nodes())}, update);
+          Length >= 2 ->  try  gen_server:call({node_server, lists:nth(2,nodes())}, update) of
+                            Data -> Data
+                          catch  _:_->  {[], [],[], [],[], [], []}
+                          end;
           true -> {[], [],[], [],[], [], []}
         end;
     3 ->
       PacketData=
         if
-          Length >= 3 -> gen_server:call({node_server, lists:nth(3,nodes())}, update);
+          Length >= 3 ->  try  gen_server:call({node_server, lists:nth(3,nodes())}, update) of
+                            Data -> Data
+                          catch  _:_->  {[], [],[], [],[], [], []}
+                          end;
           true -> {[], [],[], [],[], [], []}
         end;
     4 ->
       PacketData=
         if
-          Length =:= 4 -> gen_server:call({node_server, lists:nth(4,nodes())}, update);
+          Length =:= 4 ->  try  gen_server:call({node_server, lists:nth(4,nodes())}, update) of
+                             Data -> Data
+                           catch  _:_->  {[], [],[], [],[], [], []}
+                           end;
           true -> {[], [],[], [],[], [], []}
         end
   end,
@@ -65,7 +77,30 @@ getQuarterDataAndSend(Quarter) -> %%TODO: set the connection to server when is p
 changeSettingsControllerPid() -> %%TODO: set the connection to server and to graphic when is possible
   receive
     Settings ->
-      io:format("Settings==============================================~p  microseconds~n",
-        [Settings])
+      Length=length(nodes()),
+            if Length >= 1 ->       try  gen_server:cast({node_server, lists:nth(1,nodes())}, {updateSetting, Settings}) of
+                                     ok -> ok
+                                   catch  _:_->  io:format("Couldn't update Setting- faild to call node 1~n", [])
+                                   end;
+              true -> io:format("Couldn't update Setting- node 1 is node exist~n", [])
+            end,
+            if Length >= 2 ->  try  gen_server:cast({node_server, lists:nth(2,nodes())}, {updateSetting, Settings}) of
+                                 ok -> ok
+                              catch  _:_->  io:format("Couldn't update Setting- faild to call to node 2~n", [])
+                              end;
+              true -> io:format("Couldn't update Setting- node 2 is node exist~n", [])
+            end,
+            if Length >= 3 ->  try  gen_server:cast({node_server, lists:nth(3,nodes())}, {updateSetting, Settings}) of
+                                 ok -> ok
+                              catch  _:_->  io:format("Couldn't update Setting- faild to call to node 3~n", [])
+                              end;
+              true -> io:format("Couldn't update Setting- node 3 is node exist~n", [])
+            end,
+            if Length =:= 4 ->  try  gen_server:cast({node_server, lists:nth(4,nodes())}, {updateSetting, Settings}) of
+                                  ok -> ok
+                               catch  _:_->  io:format("Couldn't update Setting- faild to call to node 4~n", [])
+                               end;
+              true -> io:format("Couldn't update Setting- node 4 is node exist~n", [])
+            end
   end,
   changeSettingsControllerPid().

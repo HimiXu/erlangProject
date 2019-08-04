@@ -24,8 +24,8 @@ start_link({Nodes, Region, NodeNum}) ->
 update() ->
   gen_server:call(node_server, update).
 
-updateStatus({missile, Ref, {falling, NextVelocity, NextPosition, Angle}}) ->
-  gen_server:call(node_server, {updateStatus, missile, Ref, {NextVelocity, NextPosition, Angle}});
+updateStatus({missile, Ref, {falling, NextVelocity, NextPosition, Angle, Acceleration}}) ->
+  gen_server:call(node_server, {updateStatus, missile, Ref, {NextVelocity, NextPosition, Angle, Acceleration}});
 updateStatus({antimissile, Ref, {intercepting, NextVelocity, NextPosition, Angle}}) ->
   gen_server:call(node_server, {updateStatus, antimissile, Ref, {NextVelocity, NextPosition, Angle}});
 updateStatus({Type, RefOrName, Status}) ->
@@ -53,29 +53,36 @@ init({Nodes, Region, NodeNum}) ->
     explosions => [],
     interceptions => []},
   script:script(NodeNum),
-  {ok, {Tables, Nodes, Region}}.
+  {ok, {Tables, Nodes, Region, NodeNum}}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+handle_cast({updateSetting, {{missilesSpeed, MissilesSpeedSlider}, {missilesQuantity, MissilesQuantitySlider}, {gravity, GravitySlider},
+  {radarError, RadarErrorSlider}, {radarRange, RadarRangeSlider} ,{radarRefreshDelay, RadarRefreshDelay}}}, {Tables, Nodes, Region, NodeNum}) ->
+  script:changeSettings_script(NodeNum),
+  {noreply, {Tables, Nodes, Region, NodeNum}};
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PROPERTY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-handle_cast({updateStatus, city, Name, {Status, Position}}, {Tables, Nodes, Region}) ->
+handle_cast({updateStatus, city, Name, {Status, Position}}, {Tables, Nodes, Region, NodeNum}) ->
   CitiesTable = maps:get(ct, Tables, error),
   io:format("City ~p at ~p status: ~p~n", [Name, Position, Status]),
   ets:insert(CitiesTable, {Name, {Status, Position}}),
-  {noreply, {Tables, Nodes, Region}};
+  {noreply, {Tables, Nodes, Region, NodeNum}};
 
 %----------------------------------------------------------------------------%
-handle_cast({updateStatus, launcher, Ref, {Status, Position}}, {Tables, Nodes, Region}) ->
+handle_cast({updateStatus, launcher, Ref, {Status, Position}}, {Tables, Nodes, Region, NodeNum}) ->
   LaunchersTable = maps:get(lt, Tables, error),
   io:format("Launcher ~p at ~p status: ~p~n", [Ref, Position, Status]),
   ets:insert(LaunchersTable, {Ref, {Status, Position}}),
-  {noreply, {Tables, Nodes, Region}};
+  {noreply, {Tables, Nodes, Region, NodeNum}};
 
 %----------------------------------------------------------------------------%
-handle_cast({updateStatus, radar, Ref, {Status, Position}}, {Tables, Nodes, Region}) ->
+handle_cast({updateStatus, radar, Ref, {Status, Position}}, {Tables, Nodes, Region, NodeNum}) ->
   RadarsTable = maps:get(rt, Tables, error),
   io:format("Radar ~p at ~p status: ~p~n", [Ref, Position, Status]),
   ets:insert(RadarsTable, {Ref, {Status, Position}}),
-  {noreply, {Tables, Nodes, Region}};
+  {noreply, {Tables, Nodes, Region, NodeNum}};
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PROPERTY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -84,19 +91,19 @@ handle_cast({updateStatus, radar, Ref, {Status, Position}}, {Tables, Nodes, Regi
 
 
 %----------------------------------------------------------------------------%
-handle_cast({updateStatus, missile, Ref, {exploded, Position}}, {Tables, Nodes, Region}) ->
+handle_cast({updateStatus, missile, Ref, {exploded, Position}}, {Tables, Nodes, Region, NodeNum}) ->
   MissilesTable = maps:get(mt, Tables, error),
   ets:delete(MissilesTable, Ref),
   Explosions = maps:get(explosions, Tables, error),
-  {noreply, {Tables#{explosions => [{Position, 0} | Explosions]}, Nodes, Region}};
+  {noreply, {Tables#{explosions => [{Position, 0} | Explosions]}, Nodes, Region, NodeNum}};
 
 %----------------------------------------------------------------------------%
-handle_cast({updateStatus, missile, Ref, {intercepted, Position}}, {Tables, Nodes, Region}) ->
+handle_cast({updateStatus, missile, Ref, {intercepted, Position}}, {Tables, Nodes, Region, NodeNum}) ->
   MissilesTable = maps:get(mt, Tables, error),
 %%  io:format("Missile ~p intercepted at ~p~n", [Ref, Position]),
   ets:delete(MissilesTable, Ref),
   Interceptions = maps:get(interceptions, Tables, error),
-  {noreply, {Tables#{interceptions => [{Position, 0} | Interceptions]}, Nodes, Region}};
+  {noreply, {Tables#{interceptions => [{Position, 0} | Interceptions]}, Nodes, Region, NodeNum}};
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% MISSILE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -106,23 +113,23 @@ handle_cast({updateStatus, missile, Ref, {intercepted, Position}}, {Tables, Node
 
 
 %----------------------------------------------------------------------------%
-handle_cast({updateStatus, antimissile, Ref, {out, _Position}}, {Tables, Nodes, Region}) ->
+handle_cast({updateStatus, antimissile, Ref, {out, _Position}}, {Tables, Nodes, Region, NodeNum}) ->
   AntiMissilesTable = maps:get(amt, Tables, error),
 %%  io:format("Anti-missile ~p is out of bounds ~n", [Ref]),
   ets:delete(AntiMissilesTable, Ref),
-  {noreply, {Tables, Nodes, Region}};
+  {noreply, {Tables, Nodes, Region, NodeNum}};
 
 %----------------------------------------------------------------------------%
-handle_cast({updateStatus, antimissile, Ref, {successful, _Position}}, {Tables, Nodes, Region}) ->
+handle_cast({updateStatus, antimissile, Ref, {successful, _Position}}, {Tables, Nodes, Region, NodeNum}) ->
   AntiMissilesTable = maps:get(amt, Tables, error),
 %%  io:format("Anti-missile ~p successfully intercepted missile at ~p~n", [Ref, Position]),
   ets:delete(AntiMissilesTable, Ref),
-  {noreply, {Tables, Nodes, Region}}.
+  {noreply, {Tables, Nodes, Region, NodeNum}}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ANTIMISSILE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-handle_call(update, _From, {Tables, Nodes, Region}) ->
+handle_call(update, _From, {Tables, Nodes, Region, NodeNum}) ->
   Missiles = qlc:e(qlc:q([{round(X), round(Y), Angle} || {_Ref, {falling, _Velocity, {X, Y}, Angle}} <- ets:table(maps:get(mt, Tables, error))])),
   AntiMissiles = qlc:e(qlc:q([{round(X), round(Y), Angle} || {_Ref, {intercepting, _Velocity, {X, Y}, Angle}} <- ets:table(maps:get(amt, Tables, error))])),
   Cities = qlc:e(qlc:q([{Name, Status} || {Name, {Status, _Position}} <- ets:table(maps:get(ct, Tables, error))])),
@@ -135,15 +142,15 @@ handle_call(update, _From, {Tables, Nodes, Region}) ->
   NewExplosions = [{{X, Y}, Counter + 1} || {{X, Y}, Counter} <- maps:get(explosions, Tables, error), Counter < MAX_FRAMES],
   NewInterceptions = [{{X, Y}, Counter + 1} || {{X, Y}, Counter} <- maps:get(interceptions, Tables, error), Counter < MAX_FRAMES],
   Packet = {Launchers, Radars, Cities, AntiMissiles, Missiles, Interceptions, Explosions},
-  {reply, Packet, {Tables#{explosions => NewExplosions, interceptions => NewInterceptions}, Nodes, Region}};
+  {reply, Packet, {Tables#{explosions => NewExplosions, interceptions => NewInterceptions}, Nodes, Region, NodeNum}};
 
-handle_call(getMissiles, _From, {Tables, Nodes, Region}) ->
+handle_call(getMissiles, _From, {Tables, Nodes, Region, NodeNum}) ->
   MissilesTable = maps:get(mt, Tables, error),
   Missiles = ets:tab2list(MissilesTable),
   {reply, lists:map(fun({Ref, {falling, _Velocity, {Px, Py}, _Angle}}) ->
-    {Ref, Px, Py} end, Missiles), {Tables, Nodes, Region}};
+    {Ref, Px, Py} end, Missiles), {Tables, Nodes, Region, NodeNum}};
 
-handle_call({getMissiles, sight, {PyTop, PyMid, PyBot, PxMid, Width}}, _From, {Tables, Nodes, Region}) ->
+handle_call({getMissiles, sight, {PyTop, PyMid, PyBot, PxMid, Width}}, _From, {Tables, Nodes, Region, NodeNum}) ->
   MissilesTable = maps:get(mt, Tables, error),
   Missiles = ets:tab2list(MissilesTable),
   MissilesData = lists:map(fun({_Ref, {falling, Velocity, Position, _Angle}}) -> {Velocity, Position} end, Missiles),
@@ -155,9 +162,9 @@ handle_call({getMissiles, sight, {PyTop, PyMid, PyBot, PxMid, Width}}, _From, {T
           or
           ((Px >= PxMid) and (Px < PxMid + Width / 2) and (Py - PyBot < - Px + PxMid))))
                                   end, MissilesData)),
-  {reply, MissilesInSight, {Tables, Nodes, Region}};
+  {reply, MissilesInSight, {Tables, Nodes, Region, NodeNum}};
 
-handle_call({getMissiles, {PyTop, PyMid, PyBot, PxMid, Width}}, _From, {Tables, Nodes, Region}) ->
+handle_call({getMissiles, {PyTop, PyMid, PyBot, PxMid, Width}}, _From, {Tables, Nodes, Region, NodeNum}) ->
   MissilesTable = maps:get(mt, Tables, error),
   Missiles = ets:tab2list(MissilesTable),
   OtherNodes = [Node || {Node, _, Ry} <- Nodes, Node =/= node(), Ry =/= 800],
@@ -172,14 +179,14 @@ handle_call({getMissiles, {PyTop, PyMid, PyBot, PxMid, Width}}, _From, {Tables, 
                                   end, MissilesData)),
   MissilesCaught = lists:foldl(fun(Node, AllMissiles) ->
     AllMissiles ++ rpc:call(Node, node_server, getMissiles, [sight, {PyTop, PyMid, PyBot, PxMid, Width}]) end, MissilesInSight, OtherNodes),
-  {reply, MissilesCaught, {Tables, Nodes, Region}};
+  {reply, MissilesCaught, {Tables, Nodes, Region, NodeNum}};
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CALLS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% MISSILE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-handle_call({updateStatus, missile, Ref, {Velocity, {Px, Py}, Angle}}, _From, {Tables, Nodes, {Rx, Ry}}) ->
+handle_call({updateStatus, missile, Ref, {Velocity, {Px, Py}, Angle, Acceleration}}, _From, {Tables, Nodes, {Rx, Ry}, NodeNum}) ->
   if
     (Px < 600) and (Py < 400) -> {Node, _, _} = lists:nth(1, Nodes);
     (Px < 600) and (400 =< Py) and (Py < 800) -> {Node, _, _} = lists:nth(3, Nodes);
@@ -191,17 +198,17 @@ handle_call({updateStatus, missile, Ref, {Velocity, {Px, Py}, Angle}}, _From, {T
   if
     (Node =:= node()) or (Node =:= [])->
       ets:insert(MissilesTable, {Ref, {falling, Velocity, {Px, Py}, Angle}}),
-      {reply, continue, {Tables, Nodes, {Rx, Ry}}};
+      {reply, continue, {Tables, Nodes, {Rx, Ry},NodeNum}};
     true ->
       io:format("Missile ~p entered node ~p~n", [Ref, Node]),
-      rpc:cast(Node, mclock, generateMissile, [Ref, Velocity, {Px, Py}]),
+      rpc:cast(Node, mclock, generateMissile, [Ref, Acceleration, Velocity, {Px, Py}]),
       ets:delete(MissilesTable, Ref),
-      {reply, kill, {Tables, Nodes, {Rx, Ry}}}
+      {reply, kill, {Tables, Nodes, {Rx, Ry}, NodeNum}}
   end;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% MISSILE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ANTI-MISSILE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-handle_call({updateStatus, antimissile, Ref, {Velocity, {Px, Py}, Angle}}, _From, {Tables, Nodes, {Rx, Ry}}) ->
+handle_call({updateStatus, antimissile, Ref, {Velocity, {Px, Py}, Angle}}, _From, {Tables, Nodes, {Rx, Ry}, NodeNum}) ->
   if
     (Px < 600) and (Py < 400) -> {Node, _, _} = lists:nth(1, Nodes);
     (Px < 600) and (400 =< Py) and (Py < 800) -> {Node, _, _} = lists:nth(3, Nodes);
@@ -213,16 +220,17 @@ handle_call({updateStatus, antimissile, Ref, {Velocity, {Px, Py}, Angle}}, _From
   if
     (Node =:= node()) or (Node =:= []) ->
       ets:insert(AntiMissilesTable, {Ref, {intercepting, Velocity, {Px, Py}, Angle}}),
-      {reply, continue, {Tables, Nodes, {Rx, Ry}}};
+      {reply, continue, {Tables, Nodes, {Rx, Ry}, NodeNum}};
     true ->
       io:format("Antimissile ~p entered node ~p~n", [Ref, Node]),
       rpc:cast(Node, mclock, generateAntiMissile, [Ref, Velocity, {Px, Py}]),
       ets:delete(AntiMissilesTable, Ref),
-      {reply, kill, {Tables, Nodes, {Rx, Ry}}}
+      {reply, kill, {Tables, Nodes, {Rx, Ry}, NodeNum}}
   end.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ANTI-MISSILE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CALLS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CALLS  And casts of graphic%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
