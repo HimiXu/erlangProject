@@ -241,12 +241,12 @@ finishDrawing(Data) ->
 
 draw_buttons(Panel, WxEnv, ServerInfo)->
   wx:set_env(WxEnv),
-  MissilesSpeedSlider = wxSlider:new (Panel, 1, 5, 0, 10, [{pos, {200, 800}}, {size, {100, 20}}]),
+  MissilesSpeedSlider = wxSlider:new (Panel, 1, 5, 1, 10, [{pos, {200, 800}}, {size, {100, 20}}]),
   MissilesQuantitySlider = wxSlider:new (Panel, 2, 5, 0, 10, [{pos, {200, 840}}, {size, {100, 20}}]),
   GravitySlider = wxSlider:new (Panel, 3, 5, 0, 10, [{pos, {200, 880}}, {size, {100, 20}}]),
-  RadarErrorSlider = wxSlider:new (Panel, 4, 5, 0, 10, [{pos, {500, 800}}, {size, {100, 20}}]),
-  RadarRangeSlider = wxSlider:new (Panel, 5, 5, 0, 10, [{pos, {500, 840}}, {size, {100, 20}}]),
-  RadarRefreshDelay = wxSlider:new (Panel, 6, 5, 0, 10, [{pos, {500, 880}}, {size, {100, 20}}]),
+  RadarErrorSlider = wxSlider:new (Panel, 4, 5, 1, 10, [{pos, {500, 800}}, {size, {100, 20}}]),
+  RadarRangeSlider = wxSlider:new (Panel, 5, 5, 1, 10, [{pos, {500, 840}}, {size, {100, 20}}]),
+  RadarRefreshDelay = wxSlider:new (Panel, 6, 5, 1, 10, [{pos, {500, 880}}, {size, {100, 20}}]),
   wxButton:new(Panel, 7, [{label, "Apply Settings"},{pos, {840,850}},{size, {170,50}}]),
   wxStaticText:new(Panel, 8, "MissilesSpeed:", [{pos, {50, 800}}, {size, {200, 20}}] ),
   wxStaticText:new(Panel, 9, "Missiles Quantity:", [{pos, {50, 840}}, {size, {200, 20}}] ),

@@ -41,14 +41,14 @@ callback_mode() ->
 idle(cast, {tick, TimeDiff}, {ClockPID, TimeDiff, Mod, Region, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->
   CoinFlip = rand:uniform(1000),
   if
-    (CoinFlip > 990-(MissileScale*38)) and (Mod =:= generate) -> generateMissile(Region, MissileSpeed, GRAVITY);
+    (CoinFlip > 990-(MissileScale*9)) and (Mod =:= generate) -> generateMissile(Region, MissileSpeed, GRAVITY);
     true -> none
   end,
   lists:foreach(fun(Ref) -> missile:tick(Ref, TimeDiff) end, Missiles),
   lists:foreach(fun(Ref) -> antimissile:tick(Ref, TimeDiff) end, AntiMissiles),
   {next_state, idle, {ClockPID, TimeDiff, Mod, Region, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}};
 
-idle(cast, {settingUpdate, NewMissileScale, NewMissileSpeed, NewGRAVITY}, {ClockPID, TimeDiff, Mod, Region, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->
+idle(cast, {settingUpdate, NewMissileScale, NewMissileSpeed, NewGRAVITY}, {ClockPID, TimeDiff, Mod, Region, Missiles, AntiMissiles, _MissileScale, _MissileSpeed, _GRAVITY}) ->
   {next_state, idle, {ClockPID, TimeDiff, Mod, Region, Missiles, AntiMissiles, NewMissileScale, NewMissileSpeed, NewGRAVITY}};
 
 idle(cast, {register, missile, Ref}, {ClockPID, TimeDiff, Mod, Region, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->

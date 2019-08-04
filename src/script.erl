@@ -91,9 +91,13 @@ changeSettings_script(NodeNum,{missilesSpeed, MissilesSpeedSlider}, {missilesQua
     2 -> %% AREA {600,1200}/{0,400}
       gen_statem:cast(mclock, {settingUpdate, MissilesQuantitySlider, MissilesSpeedSlider, GravitySlider});
     3 -> %% AREA {0,600}/{400/800}
-      gen_statem:cast(mclock, {settingUpdate, MissilesQuantitySlider, MissilesSpeedSlider, GravitySlider});
+      gen_statem:cast(mclock, {settingUpdate, MissilesQuantitySlider, MissilesSpeedSlider, GravitySlider}),
+      gen_statem:cast(radar3, {settingUpdate, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, GravitySlider});
     4 -> %% AREA {600,1200}/{400/800}
-      gen_statem:cast(mclock, {settingUpdate, MissilesQuantitySlider, MissilesSpeedSlider, GravitySlider})
+      gen_statem:cast(mclock, {settingUpdate, MissilesQuantitySlider, MissilesSpeedSlider, GravitySlider}),
+      gen_statem:cast(radar1, {settingUpdate, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, GravitySlider}),
+      gen_statem:cast(radar2, {settingUpdate, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, GravitySlider}),
+      gen_statem:cast(radar4, {settingUpdate, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, GravitySlider})
   end.
 
 
