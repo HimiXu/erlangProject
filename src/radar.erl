@@ -45,7 +45,7 @@ init({Position, MissileTimeDiff, Launchers, Ref}) ->
   RadarRangeSlider=5,
   RadarRefreshDelay=5,
   GravitySlider=5,
-  spawn_link(fun F() -> timer:sleep(RadarRefreshDelay*0.2* 1500), radar:tick(Ref) end),
+  spawn_link(fun ()-> timer:sleep(round(RadarRefreshDelay*0.2* 1500)), radar:tick(Ref) end),
   node_server:updateStatus({radar, Ref, {alive, Position}}),
   Sight = calcSight(RadarRangeSlider,Position),
   {ok, idle, {Position, Sight, MissileTimeDiff, Launchers, Ref, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, GravitySlider}}.
@@ -58,7 +58,7 @@ idle(cast, {settingUpdate, NewRadarErrorSlider, NewRadarRangeSlider, NewRadarRef
   {next_state, idle, {Position, NewSight, MissileTimeDiff, Launchers, Ref,NewRadarErrorSlider, NewRadarRangeSlider, NewRadarRefreshDelay, NewGravitySlider}};
 
 idle(cast, tick, {Position, Sight, MissileTimeDiff, Launchers, Ref,RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, GravitySlider}) ->
-  spawn_link(fun F() -> timer:sleep(RadarRefreshDelay*0.2* 1500), radar:tick(Ref) end),
+  spawn_link(fun () -> timer:sleep(round(RadarRefreshDelay*0.2* 1500)), radar:tick(Ref) end),
   MissilesInSight = node_server:getMissiles(Sight),
   LaunchTargets = calcTargets(MissilesInSight, MissileTimeDiff, [], RadarErrorSlider, GravitySlider),
   lists:foreach(fun(Target) -> Launcher = lists:nth(rand:uniform(length(Launchers)), Launchers),
