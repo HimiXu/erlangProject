@@ -59,7 +59,8 @@ init({Nodes, Region, NodeNum}) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 handle_cast({updateSetting, {{missilesSpeed, MissilesSpeedSlider}, {missilesQuantity, MissilesQuantitySlider}, {gravity, GravitySlider},
   {radarError, RadarErrorSlider}, {radarRange, RadarRangeSlider} ,{radarRefreshDelay, RadarRefreshDelay}}}, {Tables, Nodes, Region, NodeNum}) ->
-  script:changeSettings_script(NodeNum),
+  script:changeSettings_script(NodeNum, {missilesSpeed, MissilesSpeedSlider}, {missilesQuantity, MissilesQuantitySlider}, {gravity, GravitySlider},
+    {radarError, RadarErrorSlider}, {radarRange, RadarRangeSlider} ,{radarRefreshDelay, RadarRefreshDelay}),
   {noreply, {Tables, Nodes, Region, NodeNum}};
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
