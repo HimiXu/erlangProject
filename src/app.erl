@@ -41,7 +41,8 @@ start(normal, [Node1, Node2, Node3, Node4]) ->
     rpc:call(Node3, node_server, start_link, [{[{Node1, 600, 400}, {Node2, 1200, 400}, {Node3, 600, 800}, {Node4, 1200, 800}], {600, 800}, 3}]) end),
   spawn_link(fun() ->
     rpc:call(Node4, node_server, start_link, [{[{Node1, 600, 400}, {Node2, 1200, 400}, {Node3, 600, 800}, {Node4, 1200, 800}], {1200, 800}, 4}]) end),
-  spawn_link(fun() -> graphicConnection:init() end).
+  spawn_link(fun() -> graphicConnection:init([Node1, Node2, Node3, Node4]) end),
+  backup_servers:start_link(Node1, Node2, Node3, Node4).
 
 
 stop(_State) ->

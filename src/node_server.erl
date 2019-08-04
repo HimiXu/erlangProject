@@ -13,7 +13,7 @@
 %% API
 -export([start_link/1]).
 -export([handle_cast/2, handle_call/3, init/1]).
--export([updateStatus/1, getMissiles/0, getMissiles/1, getMissiles/2, update/0]).
+-export([updateStatus/1, getMissiles/0, getMissiles/1, getMissiles/2, update/1]).
 
 -include_lib("stdlib/include/qlc.hrl").
 
@@ -21,8 +21,8 @@ start_link({Nodes, Region, NodeNum}) ->
   gen_server:start_link({local, node_server}, node_server, {Nodes, Region, NodeNum}, []).
 
 
-update() ->
-  gen_server:call(node_server, update).
+update(Region) ->
+  gen_server:call(node_server, {update,Region}).
 
 updateStatus({missile, Ref, {falling, NextVelocity, NextPosition, Angle, Acceleration}}) ->
   gen_server:call(node_server, {updateStatus, missile, Ref, {NextVelocity, NextPosition, Angle, Acceleration}});
@@ -130,7 +130,7 @@ handle_cast({updateStatus, antimissile, Ref, {successful, _Position}}, {Tables, 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ANTIMISSILE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-handle_call(update, _From, {Tables, Nodes, Region, NodeNum}) ->
+handle_call({update, RegionFromAbove} , _From, {Tables, Nodes, Region, NodeNum}) ->
   Missiles = qlc:e(qlc:q([{round(X), round(Y), Angle} || {_Ref, {falling, _Velocity, {X, Y}, Angle}} <- ets:table(maps:get(mt, Tables, error))])),
   AntiMissiles = qlc:e(qlc:q([{round(X), round(Y), Angle} || {_Ref, {intercepting, _Velocity, {X, Y}, Angle}} <- ets:table(maps:get(amt, Tables, error))])),
   Cities = qlc:e(qlc:q([{Name, Status} || {Name, {Status, _Position}} <- ets:table(maps:get(ct, Tables, error))])),
@@ -201,7 +201,7 @@ handle_call({updateStatus, missile, Ref, {Velocity, {Px, Py}, Angle, Acceleratio
       ets:insert(MissilesTable, {Ref, {falling, Velocity, {Px, Py}, Angle}}),
       {reply, continue, {Tables, Nodes, {Rx, Ry},NodeNum}};
     true ->
-      io:format("Missile ~p entered node ~p~n", [Ref, Node]),
+      %io:format("Missile ~p entered node ~p~n", [Ref, Node]),
       rpc:cast(Node, mclock, generateMissile, [Ref, Acceleration, Velocity, {Px, Py}]),
       ets:delete(MissilesTable, Ref),
       {reply, kill, {Tables, Nodes, {Rx, Ry}, NodeNum}}
@@ -223,7 +223,7 @@ handle_call({updateStatus, antimissile, Ref, {Velocity, {Px, Py}, Angle}}, _From
       ets:insert(AntiMissilesTable, {Ref, {intercepting, Velocity, {Px, Py}, Angle}}),
       {reply, continue, {Tables, Nodes, {Rx, Ry}, NodeNum}};
     true ->
-      io:format("Antimissile ~p entered node ~p~n", [Ref, Node]),
+      %io:format("Antimissile ~p entered node ~p~n", [Ref, Node]),
       rpc:cast(Node, mclock, generateAntiMissile, [Ref, Velocity, {Px, Py}]),
       ets:delete(AntiMissilesTable, Ref),
       {reply, kill, {Tables, Nodes, {Rx, Ry}, NodeNum}}

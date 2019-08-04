@@ -78,7 +78,7 @@ assesHit({Px, Py}, [{MissileRef, PxM, PyM} | Missiles], PxMax) ->
 
 calcAngle({Vx, Vy}) ->
   VxP = if abs(Vx) < 0.1 ->
-    (Vx / abs(Vx)) * 0.01;
+    0.01;
           true -> Vx
         end,
   if

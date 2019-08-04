@@ -62,7 +62,7 @@ falling(cast, {tick, TimeDiff}, {{Acceleration, Velocity, Position}, {Cities, La
       {stop, normal}
   end;
 falling(cast, interception, {{_Acceleration, _Velocity, Position}, _Targets, Ref}) ->
-  io:format("Interception~n"),
+  %io:format("Interception~n"),
   node_server:updateStatus({missile, Ref, {intercepted, Position}}),
   mclock:unregister(missile, Ref),
   {stop, normal}.
@@ -97,7 +97,7 @@ assesHit({Px, Py}, [{CityName, PxC, PyC} | Cities], Launchers, Radars, PyG) ->
 
 calcAngle({Vx, Vy}) ->
   VxP = if abs(Vx) < 0.1 ->
-    (Vx / abs(Vx)) * 0.01;
+    0.01;
           true -> Vx
         end,
   if
