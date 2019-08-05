@@ -45,7 +45,7 @@ init({Position, MissileTimeDiff, Launchers, Ref}) ->
   RadarRangeSlider=5,
   RadarRefreshDelay=5,
   GravitySlider=5,
-  spawn_link(fun ()-> timer:sleep(round(RadarRefreshDelay*0.2* 1500)), radar:tick(Ref) end),
+  spawn_link(fun ()-> timer:sleep(round(RadarRefreshDelay*200)), radar:tick(Ref) end),
   node_server:updateStatus({radar, Ref, {alive, Position}}),
   Sight = calcSight(RadarRangeSlider,Position),
   {ok, idle, {Position, Sight, MissileTimeDiff, Launchers, Ref, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, GravitySlider}}.

@@ -92,7 +92,7 @@ generateMissile(Mod, MissileSpeed, GravityScale) ->
     PosX < 600 -> VelX = rand:uniform(MissileSpeed);
     true -> VelX = (-1) * rand:uniform(MissileSpeed)
   end,
-  generateMissile(make_ref(), {0, GRAVITY}, {VelX, VelY}, {PosX, 0}).
+  generateMissile(make_ref(), {0, GRAVITY}, {VelX, VelY}, {PosX, -10}).
 
 %%generateMissile(Ref, Velocity, Position, Acceleration) ->
 %%  generateMissile(Ref, Acceleration, Velocity, Position).

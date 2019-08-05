@@ -33,11 +33,18 @@ nodeDown(Region, Node) ->
 nodeUp(Node) ->
   gen_server:cast(backup_server, {nodeUp, Node}).
 
-
 handle_cast({backup, Region, Backup}, {Backups, RegionsNode, Nodes, DutyFIFO}) ->
-  {noreply, {Backups#{Region => Backup}, RegionsNode, Nodes, DutyFIFO}}.
+  {noreply, {Backups#{Region => Backup}, RegionsNode, Nodes, DutyFIFO}};
 
-
+handle_cast({nodeUp, Node}, {Backups, RegionsNode, Nodes, [{FirstNode, FirstRegion} | DutyFIFO]}) ->
+  %% get region backup
+  Backup = maps:get(FirstRegion, Backups),
+  %% release first node in queue from duty
+  rpc:cast(FirstNode, node_server, release, [FirstRegion]),
+  %% TODO initialization from existing
+  rpc:cast(FirstNode, node_server, init, [FirstRegion,Backup]),
+  %% make the new node take over
+  {reply, {FirstRegion, Backup}, {Backups, RegionsNode, [Node | Nodes], DutyFIFO}}.
 
 handle_call({nodeDown, Region, Node}, _From, {Backups, RegionsNode, Nodes, DutyFIFO}) ->
   %% get region backup
@@ -49,15 +56,7 @@ handle_call({nodeDown, Region, Node}, _From, {Backups, RegionsNode, Nodes, DutyF
   %% make node in charge
   rpc:cast(NodeTakeOver, node_server, takeover, [{Region, Backup}]),
   %% reply with the new node in charge of Region
-  {reply, NodeTakeOver, {Backups, RegionsNode#{Region => NodeTakeOver}, NodesUp, DutyFIFO ++ [{NodeTakeOver, Region}]}};
-
-handle_call({nodeUp, Node}, _From, {Backups, RegionsNode, Nodes, [{FirstNode, FirstRegion} | DutyFIFO]}) ->
-  %% get region backup
-  Backup = maps:get(FirstRegion, Backups),
-  %% release first node in queue from duty
-  rpc:cast(FirstNode, node_server, release, [FirstRegion]),
-  %% make the new node take over
-  {reply, {FirstRegion, Backup}, {Backups, RegionsNode, [Node | Nodes], DutyFIFO}}.
+  {reply, NodeTakeOver, {Backups, RegionsNode#{Region => NodeTakeOver}, NodesUp, DutyFIFO ++ [{NodeTakeOver, Region}]}}.
 
 terminate(_Reason, _State, _Data) ->
   ok.

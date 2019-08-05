@@ -65,23 +65,25 @@ script(Region) ->
   end.
 
 
-recovery({Launchers, Radars, Cities, AntiMissiles, Missiles},Region) ->
+recovery({Launchers, Radars, Cities, AntiMissiles, Missiles}, Region) ->
   lists:foreach(fun({X, Y, _Angle, Velocity, Ref}) ->
-    mclock:generateMissile(Ref, {0, 0.065}, Velocity, {X,Y}) end, Missiles), %%TODO: see how the change {0, 0.065} to be the actual ACCELERATION
+    mclock:generateMissile(Ref, {0, 0.065}, Velocity, {X, Y}) end, Missiles), %%TODO: see how the change {0, 0.065} to be the actual ACCELERATION
   lists:foreach(fun({X, Y, _Angle, Velocity, Ref}) ->
-    mclock:generateAntiMissile(Ref, Velocity, {X,Y}) end, AntiMissiles),
+    mclock:generateAntiMissile(Ref, Velocity, {X, Y}) end, AntiMissiles),
   LauncherRefs = lists:map(fun({Ref, _Status, Position}) ->
     launcher:start_link({Position, 1200, Ref}),
     Ref end, Launchers),
   lists:foreach(fun({Ref, _Status, Position}) ->
     radar:start_link({Position, 1, LauncherRefs, 1, Ref})
                 end, Radars),
-  lists:foreach(fun({Name, _Status, Position}) ->
-    city:start_link({Position, Name}) end, Cities),
+  lists:foreach(fun({Name, Status, Position}) ->
+    if Status =:= alive ->
+      city:start_link({Position, Name});
+      true -> nada end end, Cities),
   mclock:setMod(Region).
 
-changeSettings_script(Region,{missilesSpeed, MissilesSpeedSlider}, {missilesQuantity, MissilesQuantitySlider}, {gravity, GravitySlider},
-    {radarError, RadarErrorSlider}, {radarRange, RadarRangeSlider} ,{radarRefreshDelay, RadarRefreshDelay}) ->
+changeSettings_script(Region, {missilesSpeed, MissilesSpeedSlider}, {missilesQuantity, MissilesQuantitySlider}, {gravity, GravitySlider},
+    {radarError, RadarErrorSlider}, {radarRange, RadarRangeSlider}, {radarRefreshDelay, RadarRefreshDelay}) ->
   case Region of
     a -> %% AREA {0,600}/{0,400}
       gen_statem:cast(mclock, {settingUpdate, MissilesQuantitySlider, MissilesSpeedSlider, GravitySlider});
@@ -96,7 +98,6 @@ changeSettings_script(Region,{missilesSpeed, MissilesSpeedSlider}, {missilesQuan
       gen_statem:cast(list_to_atom(lists:append("radar", [2])), {settingUpdate, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, GravitySlider}),
       gen_statem:cast(list_to_atom(lists:append("radar", [4])), {settingUpdate, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, GravitySlider})
   end.
-
 
 
 %%  {Ref0, _, _} = launcher:start_link({{550, 1000}, 1000, make_ref()}),

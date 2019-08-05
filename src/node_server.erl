@@ -206,9 +206,14 @@ handle_call({getMissiles, {PyTop, PyMid, PyBot, PxMid, Width}}, _From, {Tables, 
           or
           ((Px >= PxMid) and (Px < PxMid + Width / 2) and (Py - PyBot < - Px + PxMid))))
                                   end, MissilesData)),
-  MissilesCaught = lists:foldl(fun(Node, AllMissiles) ->
-    AllMissiles ++ rpc:call(Node, node_server, getMissiles, [sight, {PyTop, PyMid, PyBot, PxMid, Width}]) end, MissilesInSight, OtherNodes),
+  MissilesCaught = try
+                     lists:foldl(fun(Node, AllMissiles) ->
+                       AllMissiles ++ rpc:call(Node, node_server, getMissiles, [sight, {PyTop, PyMid, PyBot, PxMid, Width}]) end, MissilesInSight, OtherNodes)
+                   catch
+                     _:_ -> MissilesInSight
+                   end,
   {reply, MissilesCaught, {Tables, NodesAndRegions, Regions}};
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CALLS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -231,9 +236,15 @@ handle_call({updateStatus, missile, Ref, {Velocity, {Px, Py}, Angle, Acceleratio
       {reply, continue, {Tables, NodesAndRegions, Regions}};
     true ->
 %io:format("Missile ~p entered node ~p~n", [Ref, Node]),
-      rpc:cast(Node, mclock, generateMissile, [Ref, Acceleration, Velocity, {Px, Py}]),
-      ets:delete(MissilesTable, Ref),
-      {reply, kill, {Tables, NodesAndRegions, Regions}}
+      try
+        rpc:cast(Node, mclock, generateMissile, [Ref, Acceleration, Velocity, {Px, Py}]),
+
+        ets:delete(MissilesTable, Ref),
+        {reply, kill, {Tables, NodesAndRegions, Regions}}
+      catch _:_ ->
+        ets:insert(MissilesTable, {Ref, {falling, Velocity, {Px, Py}, Angle}}),
+        {reply, continue, {Tables, NodesAndRegions, Regions}}
+      end
   end;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% MISSILE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -254,9 +265,14 @@ handle_call({updateStatus, antimissile, Ref, {Velocity, {Px, Py}, Angle}}, _From
       {reply, continue, {Tables, NodesAndRegions, Regions}};
     true ->
 %io:format("Antimissile ~p entered node ~p~n", [Ref, Node]),
-      rpc:cast(Node, mclock, generateAntiMissile, [Ref, Velocity, {Px, Py}]),
-      ets:delete(AntiMissilesTable, Ref),
-      {reply, kill, {Tables, NodesAndRegions, Regions}}
+      try
+        rpc:cast(Node, mclock, generateAntiMissile, [Ref, Velocity, {Px, Py}]),
+        ets:delete(AntiMissilesTable, Ref),
+        {reply, kill, {Tables, NodesAndRegions, Regions}}
+      catch
+        _:_ -> ets:insert(AntiMissilesTable, {Ref, {intercepting, Velocity, {Px, Py}, Angle}}),
+          {reply, continue, {Tables, NodesAndRegions, Regions}}
+      end
   end.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ANTI-MISSILE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
