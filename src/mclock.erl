@@ -11,17 +11,19 @@
 -behaviour(gen_statem).
 
 %% API
--export([start_link/3]).
--export([tick/1, register/2, unregister/2, generateMissile/3,generateMissile/4 ,generateAntiMissile/3]).
+-export([start_link/2]).
+-export([tick/1, register/2, unregister/2, generateMissile/3, generateMissile/4, generateAntiMissile/3, setMod/1]).
 -export([init/1, callback_mode/0, terminate/3]).
 -export([idle/3]).
 
-start_link(TimeDiff, Mod, Region) ->
-  MissileScale=5, %initial values
-  MissileSpeed=5,
-  GRAVITY=5,
+
+%%% MODS: 0 none, 1 left, 2 right, 3 both
+start_link(TimeDiff, Mod) ->
+  MissileScale = 5, %initial values
+  MissileSpeed = 5,
+  GRAVITY = 5,
   ClockPID = spawn(fun F() -> timer:sleep(TimeDiff * 20), mclock:tick(TimeDiff), F() end),
-  gen_statem:start_link({local, mclock}, ?MODULE, {ClockPID, TimeDiff, Mod, Region, MissileScale, MissileSpeed, GRAVITY}, []).
+  gen_statem:start_link({local, mclock}, ?MODULE, {ClockPID, TimeDiff, Mod, MissileScale, MissileSpeed, GRAVITY}, []).
 
 tick(TimeDiff) ->
   gen_statem:cast(mclock, {tick, TimeDiff}).
@@ -32,48 +34,63 @@ register(Type, Ref) ->
 unregister(Type, Ref) ->
   gen_statem:cast(mclock, {unregister, Type, Ref}).
 
-
-init({ClockPID, TimeDiff, Mod, Region, MissileScale, MissileSpeed, GRAVITY}) ->
-  {ok, idle, {ClockPID, TimeDiff, Mod, Region, [], [], MissileScale, MissileSpeed, GRAVITY}}.
+setMod(Region) ->
+  gen_statem:cast(mclock, {setMod, Region}).
+init({ClockPID, TimeDiff, Mod, MissileScale, MissileSpeed, GRAVITY}) ->
+  {ok, idle, {ClockPID, TimeDiff, Mod, [], [], MissileScale, MissileSpeed, GRAVITY}}.
 
 callback_mode() ->
   state_functions.
-idle(cast, {tick, TimeDiff}, {ClockPID, TimeDiff, Mod, Region, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->
+idle(cast, {tick, TimeDiff}, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->
   CoinFlip = rand:uniform(1000),
   if
-    (CoinFlip > 990-(MissileScale*9)) and (Mod =:= generate) -> generateMissile(Region, MissileSpeed, GRAVITY);
+    (CoinFlip > 990 - (MissileScale * 9)) and (Mod > 0) -> generateMissile(Mod, MissileSpeed, GRAVITY);
     true -> none
   end,
   lists:foreach(fun(Ref) -> missile:tick(Ref, TimeDiff) end, Missiles),
   lists:foreach(fun(Ref) -> antimissile:tick(Ref, TimeDiff) end, AntiMissiles),
-  {next_state, idle, {ClockPID, TimeDiff, Mod, Region, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}};
+  {next_state, idle, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}};
 
-idle(cast, {settingUpdate, NewMissileScale, NewMissileSpeed, NewGRAVITY}, {ClockPID, TimeDiff, Mod, Region, Missiles, AntiMissiles, _MissileScale, _MissileSpeed, _GRAVITY}) ->
-  {next_state, idle, {ClockPID, TimeDiff, Mod, Region, Missiles, AntiMissiles, NewMissileScale, NewMissileSpeed, NewGRAVITY}};
+idle(cast, {settingUpdate, NewMissileScale, NewMissileSpeed, NewGRAVITY}, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles, _MissileScale, _MissileSpeed, _GRAVITY}) ->
+  {next_state, idle, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles, NewMissileScale, NewMissileSpeed, NewGRAVITY}};
 
-idle(cast, {register, missile, Ref}, {ClockPID, TimeDiff, Mod, Region, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->
-  {next_state, idle, {ClockPID, TimeDiff, Mod, Region, [Ref | Missiles], AntiMissiles, MissileScale, MissileSpeed, GRAVITY}};
+idle(cast, {register, missile, Ref}, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->
+  {next_state, idle, {ClockPID, TimeDiff, Mod, [Ref | Missiles], AntiMissiles, MissileScale, MissileSpeed, GRAVITY}};
 
-idle(cast, {register, antimissile, Ref}, {ClockPID, TimeDiff, Mod, Region, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->
-  {next_state, idle, {ClockPID, TimeDiff, Mod, Region, Missiles, [Ref | AntiMissiles], MissileScale, MissileSpeed, GRAVITY}};
+idle(cast, {register, antimissile, Ref}, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->
+  {next_state, idle, {ClockPID, TimeDiff, Mod, Missiles, [Ref | AntiMissiles], MissileScale, MissileSpeed, GRAVITY}};
 
-idle(cast, {unregister, missile, Ref}, {ClockPID, TimeDiff, Mod, Region, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->
-  {next_state, idle, {ClockPID, TimeDiff, Mod, Region, Missiles -- [Ref], AntiMissiles, MissileScale, MissileSpeed, GRAVITY}};
+idle(cast, {unregister, missile, Ref}, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->
+  {next_state, idle, {ClockPID, TimeDiff, Mod, Missiles -- [Ref], AntiMissiles, MissileScale, MissileSpeed, GRAVITY}};
 
-idle(cast, {unregister, antimissile, Ref}, {ClockPID, TimeDiff, Mod, Region, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->
-  {next_state, idle, {ClockPID, TimeDiff, Mod, Region, Missiles, AntiMissiles -- [Ref], MissileScale, MissileSpeed, GRAVITY}}.
-
+idle(cast, {unregister, antimissile, Ref}, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->
+  {next_state, idle, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles -- [Ref], MissileScale, MissileSpeed, GRAVITY}};
+idle(cast, {setMod, NewRegion}, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->
+  NewMod = case NewRegion of
+             a -> 1;
+             b -> 2;
+             c -> 0;
+             d -> 0
+           end,
+  {next_state, idle, {ClockPID, TimeDiff, Mod + NewMod, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}}.
 terminate(Reason, _State, _Data) ->
   io:format("Missiles clock terminated. Reason: ~p~n", [Reason]),
   ok.
 
-generateMissile({RxMin, RxMax}, MissileSpeed, GravityScale) ->
-  GRAVITY = GravityScale*0.01,     % 0.065,
+generateMissile(Mod, MissileSpeed, GravityScale) ->
+  GRAVITY = GravityScale * 0.01,     % 0.065,
   VelY = rand:uniform(MissileSpeed) / 10,
-  PosX = rand:uniform(RxMin + RxMax) - RxMin,
+  Left = rand:uniform(600),
+  Right = rand:uniform(600)+600,
+  Both = rand:uniform(1200),
+  PosX = case Mod of
+           1 -> Left;
+           2 -> Right;
+           3 -> Both
+         end,
   if
     PosX < 600 -> VelX = rand:uniform(MissileSpeed);
-    true -> VelX = (-1)*rand:uniform(MissileSpeed)
+    true -> VelX = (-1) * rand:uniform(MissileSpeed)
   end,
   generateMissile(make_ref(), {0, GRAVITY}, {VelX, VelY}, {PosX, 0}).
 
