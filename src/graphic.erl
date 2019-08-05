@@ -244,9 +244,9 @@ draw_buttons(Panel, WxEnv, ServerInfo)->
   wxStaticText:new(Panel, 8, "MissilesSpeed:", [{pos, {50, 800}}, {size, {200, 20}}] ),
   wxStaticText:new(Panel, 9, "Missiles Quantity:", [{pos, {50, 840}}, {size, {200, 20}}] ),
   wxStaticText:new(Panel, 10, "Gravity:", [{pos, {50, 880}}, {size, {200, 20}}] ),
-  wxStaticText:new(Panel, 11, "Radar Error:", [{pos, {350, 840}}, {size, {200, 20}}] ),
-  wxStaticText:new(Panel, 12, "Radar Range:", [{pos, {350, 880}}, {size, {200, 20}}] ),
-  wxStaticText:new(Panel, 13, "Radar Refresh Delay:", [{pos, {350, 800}}, {size, {200, 20}}] ),
+  wxStaticText:new(Panel, 11, "Radar Error:", [{pos, {350, 800}}, {size, {200, 20}}] ),
+  wxStaticText:new(Panel, 12, "Radar Range:", [{pos, {350, 840}}, {size, {200, 20}}] ),
+  wxStaticText:new(Panel, 13, "Radar Refresh Delay:", [{pos, {350, 880}}, {size, {200, 20}}] ),
   wxPanel:connect(Panel, command_button_clicked),
   loop(ServerInfo, MissilesSpeedSlider, MissilesQuantitySlider, GravitySlider, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay).
 
