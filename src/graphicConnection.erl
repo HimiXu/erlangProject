@@ -30,9 +30,7 @@ init([Node1, Node2, Node3, Node4]) ->                 %%TODO: see what kind of i
 
 sendingPacketsController(NodesAndRegions) ->
   %% send nodes and regions,
-  %%%%%%%%%%%% TRY THIS %%%%%%%%%%%%%%%%%
-  %nodeUpdatePid ! NodesAndRegions,
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  nodeUpdatePid ! NodesAndRegions,
   %% get data from servers
   ReceiverPID = self(),
   NewNodesAndRegions =

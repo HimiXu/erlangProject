@@ -263,45 +263,35 @@ loop(ServerInfo, MissilesSpeedSlider, MissilesQuantitySlider, GravitySlider, Rad
 nodesWindow(WxEnv) ->
   register(nodeUpdatePid, self()),
   wx:set_env(WxEnv),
-  Frame = wxFrame:new(wx:null(), -1, "Nodes", [{size,{200, 240}}]),
+  Frame = wxFrame:new(wx:null(), -1, "Nodes", [{size,{405, 207}}]),
   Panel  = wxPanel:new(Frame),
-  Canvas = wxPanel:new(Panel, [{size, {200, 240}}]),
+  Canvas = wxPanel:new(Panel, [{size, {405, 207}}]),
   wxPanel:connect(Canvas, paint, []),
   wxFrame:show(Frame),
-  NodesBitmaps=loadNodesImages(),
-  drawNodesLoop(Canvas, NodesBitmaps).
+  ClientDC = wxClientDC:new(Canvas),
+  BufferDC = wxBufferedDC:new(ClientDC),
+  wxDC:drawBitmap(BufferDC, wxBitmap:new(wxImage:new("include/NodesBackground.png")) , {0,0}),
+  T1 = wxStaticText:new(Canvas, 101, "", [{pos, {15, 40}}, {size, {175, 20}}] ),
+  T2 = wxStaticText:new(Canvas, 103, "", [{pos, {215, 40}}, {size, {175, 20}}] ),
+  T3 = wxStaticText:new(Canvas, 102, "", [{pos, {15, 110}}, {size, {175, 20}}] ),
+  T4 = wxStaticText:new(Canvas, 104, "", [{pos, {215, 110}}, {size, {175, 20}}] ),
+  wxBufferedDC:destroy(BufferDC),
+  wxClientDC:destroy(ClientDC),
+  drawNodesLoop(Canvas, T1, T2, T3, T4).
 
 
 
-drawNodesLoop(Canvas, NodesBitmaps) ->
+drawNodesLoop(Canvas, T1, T2, T3, T4) ->
   receive
-    {Quarter1Node, Quarter2Node, Quarter3Node, Quarter4Node} ->
+    [{a, Node1}, {b, Node2}, {c, Node3}, {d, Node4}] ->
       ClientDC = wxClientDC:new(Canvas),
       BufferDC = wxBufferedDC:new(ClientDC),
-      wxDC:drawBitmap(BufferDC, maps:get(Quarter1Node, NodesBitmaps) , {0,0}),
-      wxDC:drawBitmap(BufferDC, maps:get(Quarter2Node, NodesBitmaps) , {100,0}),
-      wxDC:drawBitmap(BufferDC, maps:get(Quarter3Node, NodesBitmaps) , {0,100}),
-      wxDC:drawBitmap(BufferDC, maps:get(Quarter4Node, NodesBitmaps) , {100,100}),
+      wxDC:drawBitmap(BufferDC, wxBitmap:new(wxImage:new("include/NodesBackground.png")) , {0,0}),
+      wxStaticText:setLabel(T1, atom_to_list(Node1)),
+      wxStaticText:setLabel(T2, atom_to_list(Node2)),
+      wxStaticText:setLabel(T3, atom_to_list(Node3)),
+      wxStaticText:setLabel(T4, atom_to_list(Node4)),
       wxBufferedDC:destroy(BufferDC),
       wxClientDC:destroy(ClientDC)
-  after 20 ->
-    ClientDC = wxClientDC:new(Canvas),
-    BufferDC = wxBufferedDC:new(ClientDC),
-    wxDC:drawBitmap(BufferDC, maps:get(1, NodesBitmaps) , {0,0}),
-    wxDC:drawBitmap(BufferDC, maps:get(2, NodesBitmaps) , {100,0}),
-    wxDC:drawBitmap(BufferDC, maps:get(3, NodesBitmaps) , {0,100}),
-    wxDC:drawBitmap(BufferDC, maps:get(4, NodesBitmaps) , {100,100}),
-    wxBufferedDC:destroy(BufferDC),
-    wxClientDC:destroy(ClientDC)
   end,
-  drawNodesLoop(Canvas, NodesBitmaps).
-
-
-
-loadNodesImages()->
-  #{
-    1    =>  wxBitmap:new(wxImage:new("include/node1.png")),
-    2    =>  wxBitmap:new(wxImage:new("include/node2.png")),
-    3    =>  wxBitmap:new(wxImage:new("include/node3.png")),
-    4    =>  wxBitmap:new(wxImage:new("include/node4.png"))
-  }.
+  drawNodesLoop(Canvas, T1, T2, T3, T4).
