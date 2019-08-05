@@ -40,7 +40,8 @@ init([ServerInfo]) ->
   MissileAndExplosionImages = loadMissileAndExplosionImages(),
   RadarsImages=loadRadarsImages(),
   LaunchersImages=loadLaunchersImages(),
-  spawn_link(fun()-> draw_buttons(Panel, WxEnv, ServerInfo) end), %
+  spawn_link(fun()-> draw_buttons(Panel, WxEnv, ServerInfo) end),
+  spawn_link(fun()-> nodesWindow(WxEnv) end),
   wxFrame:show(Frame),
   wxPanel:connect(Canvas, paint, []),
   Background =wxImage:new("include/worldBackground.png"), %background
@@ -114,10 +115,6 @@ loadRadarsImages()->
     2    => {wxBitmap:new(wxImage:new("include/radar2.png")), 736, 571},
     3    => {wxBitmap:new(wxImage:new("include/radar3.png")), 169, 629},
     4    => {wxBitmap:new(wxImage:new("include/radar4.png")), 643, 410}
-%%    radar1    => wxBitmap:new(wxImage:new("include/radar1.png")),
-%%    radar2    => wxBitmap:new(wxImage:new("include/radar2.png")),
-%%    radar3    => wxBitmap:new(wxImage:new("include/radar3.png")),
-%%    radar4    => wxBitmap:new(wxImage:new("include/radar4.png"))
   }.
 
 %%returns map of bitmaps of the launchers images
@@ -127,10 +124,6 @@ loadLaunchersImages()->
     2 => {wxBitmap:new(wxImage:new("include/launcher2.png")), 326, 534},
     3 => {wxBitmap:new(wxImage:new("include/launcher3.png")), 1105, 728},
     4 => {wxBitmap:new(wxImage:new("include/launcher4.png")), 16, 680}
-%%    launcher1 => wxBitmap:new(wxImage:new("include/launcher1.png")),
-%%    launcher2 => wxBitmap:new(wxImage:new("include/launcher2.png")),
-%%    launcher3 => wxBitmap:new(wxImage:new("include/launcher3.png")),
-%%    launcher4 => wxBitmap:new(wxImage:new("include/launcher4.png"))
   }.
 
 %%returns bitmaps of the Missile And Explosion images
@@ -265,3 +258,50 @@ loop(ServerInfo, MissilesSpeedSlider, MissilesQuantitySlider, GravitySlider, Rad
              end,
   ServerInfo ! Settings,
   loop(ServerInfo, MissilesSpeedSlider, MissilesQuantitySlider, GravitySlider, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay).
+
+
+nodesWindow(WxEnv) ->
+  register(nodeUpdatePid, self()),
+  wx:set_env(WxEnv),
+  Frame = wxFrame:new(wx:null(), -1, "Nodes", [{size,{200, 240}}]),
+  Panel  = wxPanel:new(Frame),
+  Canvas = wxPanel:new(Panel, [{size, {200, 240}}]),
+  wxPanel:connect(Canvas, paint, []),
+  wxFrame:show(Frame),
+  NodesBitmaps=loadNodesImages(),
+  drawNodesLoop(Canvas, NodesBitmaps).
+
+
+
+drawNodesLoop(Canvas, NodesBitmaps) ->
+  receive
+    {Quarter1Node, Quarter2Node, Quarter3Node, Quarter4Node} ->
+      ClientDC = wxClientDC:new(Canvas),
+      BufferDC = wxBufferedDC:new(ClientDC),
+      wxDC:drawBitmap(BufferDC, maps:get(Quarter1Node, NodesBitmaps) , {0,0}),
+      wxDC:drawBitmap(BufferDC, maps:get(Quarter2Node, NodesBitmaps) , {100,0}),
+      wxDC:drawBitmap(BufferDC, maps:get(Quarter3Node, NodesBitmaps) , {0,100}),
+      wxDC:drawBitmap(BufferDC, maps:get(Quarter4Node, NodesBitmaps) , {100,100}),
+      wxBufferedDC:destroy(BufferDC),
+      wxClientDC:destroy(ClientDC)
+  after 20 ->
+    ClientDC = wxClientDC:new(Canvas),
+    BufferDC = wxBufferedDC:new(ClientDC),
+    wxDC:drawBitmap(BufferDC, maps:get(1, NodesBitmaps) , {0,0}),
+    wxDC:drawBitmap(BufferDC, maps:get(2, NodesBitmaps) , {100,0}),
+    wxDC:drawBitmap(BufferDC, maps:get(3, NodesBitmaps) , {0,100}),
+    wxDC:drawBitmap(BufferDC, maps:get(4, NodesBitmaps) , {100,100}),
+    wxBufferedDC:destroy(BufferDC),
+    wxClientDC:destroy(ClientDC)
+  end,
+  drawNodesLoop(Canvas, NodesBitmaps).
+
+
+
+loadNodesImages()->
+  #{
+    1    =>  wxBitmap:new(wxImage:new("include/node1.png")),
+    2    =>  wxBitmap:new(wxImage:new("include/node2.png")),
+    3    =>  wxBitmap:new(wxImage:new("include/node3.png")),
+    4    =>  wxBitmap:new(wxImage:new("include/node4.png"))
+  }.
