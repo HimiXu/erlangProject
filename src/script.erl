@@ -10,14 +10,14 @@
 -author("raz").
 
 %% API
--export([script/1, crash_script/1, changeSettings_script/7]).
+-export([script/1, changeSettings_script/7, recovery/2]).
 
 %cities Locations: {{919, 755}, budapest}, {370, 494}, newYork},{{1079, 688}, paris}, {{550, 778}, jerusalem}, {{1078, 574}, moscow},
 % {{431, 637}, london}, {{725, 684}, rome},{{925, 646}, stockholm}, {{127, 595}, sydney}, {{483, 425}, washington}
 %radars Locations: {{1166, 671}, radar1}, {{753, 596}, radar2}, {{189, 652}, radar3}, {{658, 440}, radar4}
 %launcher Locations: {{808, 572}, launcher1}, {{365, 565}, launcher2}, {{1143, 753}, launcher3}, {{48, 708}, launcher4}
 %% Node1 - top left, Node 2 - top right, Node 3 - bottom left, Node 4 - bottom right
-script(NodeNum) ->
+script(Region) ->
 %%  if
 %%    NodeNum =:= 1 ->
 %%      city:start_link({{919, 755}, budapest}),
@@ -38,20 +38,20 @@ script(NodeNum) ->
 %%  radar:start_link({{189, 652}, 1, [Ref0, Ref1], 1, 3}),
 %%  radar:start_link({{658, 440}, 1, [Ref0, Ref1], 1, 4}),
 %%  mclock:start_link(1, generate).
-  case NodeNum of
-    1 -> %% AREA {0,600}/{0,400}
-      mclock:start_link(1, generate, {0, 600});
-    2 -> %% AREA {600,1200}/{0,400}
-      mclock:start_link(1, generate, {600, 1200});
-    3 -> %% AREA {0,600}/{400/800}
+  case Region of
+    a -> %% AREA {0,600}/{0,400}
+      mclock:start_link(1, 1);
+    b -> %% AREA {600,1200}/{0,400}
+      mclock:start_link(1, 2);
+    c -> %% AREA {0,600}/{400/800}
       city:start_link({{370, 494}, newYork}),
       city:start_link({{550, 778}, jerusalem}),
       city:start_link({{431, 637}, london}),
       city:start_link({{127, 595}, sydney}),
       {RefL, _, _} = launcher:start_link({{365, 565}, 1200, 2}),
       radar:start_link({{189, 652}, 1, [RefL], 1, 3}),
-      mclock:start_link(1, no_generate, {0, 600});
-    4 -> %% AREA {600,1200}/{400/800}
+      mclock:start_link(1, 0);
+    d -> %% AREA {600,1200}/{400/800}
       city:start_link({{919, 755}, budapest}),
       city:start_link({{1079, 688}, paris}),
       city:start_link({{1078, 574}, moscow}),
@@ -61,43 +61,40 @@ script(NodeNum) ->
       radar:start_link({{1166, 671}, 1, [RefL], 1, 1}),
       radar:start_link({{753, 596}, 1, [RefL], 1, 2}),
       radar:start_link({{658, 440}, 1, [RefL], 1, 4}),
-      mclock:start_link(1, no_generate, {600, 1200})
+      mclock:start_link(1, 0)
   end.
 
-crash_script(Data) ->
-  Missiles = maps:get(missile, Data),
-  AntiMissiles = maps:get(antimissile, Data),
-  Launchers = maps:get(launcher, Data),
-  Radars = maps:get(radar, Data),
-  Cities = maps:get(city, Data),
-  lists:foreach(fun({Ref, {falling, Velocity, Position, _Angle}}) ->
-    mclock:generateMissile(Ref, {0, 0.065}, Velocity, Position) end, Missiles), %%TODO: see how the change {0, 0.065} to be the actual ACCELERATION
-  lists:foreach(fun({Ref, {intercepting, Velocity, Position, _Angle}}) ->
-    mclock:generateAntiMissile(Ref, Velocity, Position) end, AntiMissiles),
-  LauncherRefs = lists:map(fun({Ref, {alive, Position}}) ->
-    {RefL, _, _} = launcher:start_link({Position, 1200, Ref}),
-    RefL end, Launchers),
-  lists:foreach(fun({Ref, {alive, Position}}) ->
+
+recovery({Launchers, Radars, Cities, AntiMissiles, Missiles},Region) ->
+  lists:foreach(fun({X, Y, _Angle, Velocity, Ref}) ->
+    mclock:generateMissile(Ref, {0, 0.065}, Velocity, {X,Y}) end, Missiles), %%TODO: see how the change {0, 0.065} to be the actual ACCELERATION
+  lists:foreach(fun({X, Y, _Angle, Velocity, Ref}) ->
+    mclock:generateAntiMissile(Ref, Velocity, {X,Y}) end, AntiMissiles),
+  LauncherRefs = lists:map(fun({Ref, _Status, Position}) ->
+    launcher:start_link({Position, 1200, Ref}),
+    Ref end, Launchers),
+  lists:foreach(fun({Ref, _Status, Position}) ->
     radar:start_link({Position, 1, LauncherRefs, 1, Ref})
                 end, Radars),
-  lists:foreach(fun({Name, {alive, Position}}) ->
-    city:start_link({Position, Name}) end, Cities).
+  lists:foreach(fun({Name, _Status, Position}) ->
+    city:start_link({Position, Name}) end, Cities),
+  mclock:setMod(Region).
 
-changeSettings_script(NodeNum,{missilesSpeed, MissilesSpeedSlider}, {missilesQuantity, MissilesQuantitySlider}, {gravity, GravitySlider},
-  {radarError, RadarErrorSlider}, {radarRange, RadarRangeSlider} ,{radarRefreshDelay, RadarRefreshDelay}) ->
-  case NodeNum of
-    1 -> %% AREA {0,600}/{0,400}
+changeSettings_script(Region,{missilesSpeed, MissilesSpeedSlider}, {missilesQuantity, MissilesQuantitySlider}, {gravity, GravitySlider},
+    {radarError, RadarErrorSlider}, {radarRange, RadarRangeSlider} ,{radarRefreshDelay, RadarRefreshDelay}) ->
+  case Region of
+    a -> %% AREA {0,600}/{0,400}
       gen_statem:cast(mclock, {settingUpdate, MissilesQuantitySlider, MissilesSpeedSlider, GravitySlider});
-    2 -> %% AREA {600,1200}/{0,400}
+    b -> %% AREA {600,1200}/{0,400}
       gen_statem:cast(mclock, {settingUpdate, MissilesQuantitySlider, MissilesSpeedSlider, GravitySlider});
-    3 -> %% AREA {0,600}/{400/800}
+    c -> %% AREA {0,600}/{400/800}
       gen_statem:cast(mclock, {settingUpdate, MissilesQuantitySlider, MissilesSpeedSlider, GravitySlider}),
-      gen_statem:cast(radar3, {settingUpdate, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, GravitySlider});
-    4 -> %% AREA {600,1200}/{400/800}
+      gen_statem:cast(list_to_atom(lists:append("radar", [3])), {settingUpdate, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, GravitySlider});
+    d -> %% AREA {600,1200}/{400/800}
       gen_statem:cast(mclock, {settingUpdate, MissilesQuantitySlider, MissilesSpeedSlider, GravitySlider}),
-      gen_statem:cast(radar1, {settingUpdate, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, GravitySlider}),
-      gen_statem:cast(radar2, {settingUpdate, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, GravitySlider}),
-      gen_statem:cast(radar4, {settingUpdate, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, GravitySlider})
+      gen_statem:cast(list_to_atom(lists:append("radar", [1])), {settingUpdate, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, GravitySlider}),
+      gen_statem:cast(list_to_atom(lists:append("radar", [2])), {settingUpdate, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, GravitySlider}),
+      gen_statem:cast(list_to_atom(lists:append("radar", [4])), {settingUpdate, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, GravitySlider})
   end.
 
 

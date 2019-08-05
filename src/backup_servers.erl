@@ -16,26 +16,26 @@
 -export([init/1, terminate/3]).
 
 start_link(Node1, Node2, Node3, Node4) ->
-  gen_server:start_link({local, backup}, ?MODULE, {Node1, Node2, Node3, Node4}, []).
+  gen_server:start_link({local, backup_server}, ?MODULE, {Node1, Node2, Node3, Node4}, []).
 
 init({Node1, Node2, Node3, Node4}) ->
-  {ok, {#{{0, 600, 0, 400} => Node1,
-    {600, 1200, 0, 400} => Node2,
-    {0, 600, 400, 800} => Node3,
-    {600, 1200, 400, 800} => Node4}, #{}, [Node1, Node2, Node3, Node4], []}}.
+  {ok, {#{a => Node1,
+    b => Node2,
+    c => Node3,
+    d => Node4}, #{}, [Node1, Node2, Node3, Node4], []}}.
 
 stash(Region, Backup) ->
-  gen_server:cast(backup, {backup, Region, Backup}).
+  gen_server:cast(backup_server, {backup, Region, Backup}).
 
 nodeDown(Region, Node) ->
-  gen_server:call(backup, {nodeDown, Region, Node}).
+  gen_server:call(backup_server, {nodeDown, Region, Node}).
 
 nodeUp(Node) ->
-  gen_server:cast(backup, {nodeUp, Node}).
+  gen_server:cast(backup_server, {nodeUp, Node}).
 
 
-handle_cast({backup, Region, Backup}, {Backups, RegionsNode, DutyFIFO}) ->
-  {noreply, {Backups#{Region => Backup}, RegionsNode, DutyFIFO}}.
+handle_cast({backup, Region, Backup}, {Backups, RegionsNode, Nodes, DutyFIFO}) ->
+  {noreply, {Backups#{Region => Backup}, RegionsNode, Nodes, DutyFIFO}}.
 
 
 

@@ -34,13 +34,13 @@
 start(normal, [Node1, Node2, Node3, Node4]) ->
   spawn_link(fun() -> graphic:start_link(graphicConnectionPID) end),
   spawn_link(fun() ->
-    rpc:call(Node1, node_server, start_link, [{[{Node1, 600, 400}, {Node2, 1200, 400}, {Node3, 600, 800}, {Node4, 1200, 800}], {600, 400}, 1}]) end),
+    rpc:call(Node1, node_server, start_link, [{Node1,Node2,Node3,Node4,a}]) end),
   spawn_link(fun() ->
-    rpc:call(Node2, node_server, start_link, [{[{Node1, 600, 400}, {Node2, 1200, 400}, {Node3, 600, 800}, {Node4, 1200, 800}], {1200, 400}, 2}]) end),
+    rpc:call(Node2, node_server, start_link, [{Node1,Node2,Node3,Node4,b}]) end),
   spawn_link(fun() ->
-    rpc:call(Node3, node_server, start_link, [{[{Node1, 600, 400}, {Node2, 1200, 400}, {Node3, 600, 800}, {Node4, 1200, 800}], {600, 800}, 3}]) end),
+    rpc:call(Node3, node_server, start_link, [{Node1,Node2,Node3,Node4,c}]) end),
   spawn_link(fun() ->
-    rpc:call(Node4, node_server, start_link, [{[{Node1, 600, 400}, {Node2, 1200, 400}, {Node3, 600, 800}, {Node4, 1200, 800}], {1200, 800}, 4}]) end),
+    rpc:call(Node4, node_server, start_link, [{Node1,Node2,Node3,Node4,d}]) end),
   spawn_link(fun() -> graphicConnection:init([Node1, Node2, Node3, Node4]) end),
   backup_servers:start_link(Node1, Node2, Node3, Node4).
 

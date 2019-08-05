@@ -18,10 +18,10 @@ init([Node1, Node2, Node3, Node4]) ->                 %%TODO: see what kind of i
   register(graphicConnectionPID, ChangeSettingsControllerPid), %TODO: maybe we will register it  as global
   timer:sleep(1000), %%TODO: see how much time is needed for the unit to be ready.
   ReceiverPID = spawn_link(fun() -> sendingPacketsController(
-    [{{0, 600, 0, 400}, Node1},
-      {{600, 1200, 0, 400}, Node2},
-      {{0, 600, 400, 800}, Node3},
-      {{600, 1200, 400, 800}, Node4}]) end), %Sending Packets Controller
+    [{a, Node1},
+      {b, Node2},
+      {c, Node3},
+      {d, Node4}]) end), %Sending Packets Controller
   %% set refresh rate
   spawn_link(fun F() -> timer:sleep(20), ReceiverPID ! tick, F() end),
   {ok, self()}.
@@ -33,22 +33,24 @@ sendingPacketsController(NodesAndRegions) ->
     receive
     %% receive order - send all the nodes update signal
       tick -> lists:foreach(fun({Region, Node}) ->
-        spawn(fun() -> getQuarterDataAndSend({Region, Node}, ReceiverPID) end) end, NodesAndRegions),
+        spawn(fun() -> getQuarterDataAndSend({Region, Node, NodesAndRegions}, ReceiverPID) end) end, NodesAndRegions),
         getNodes([], 0)
     after 1000 ->
       NodesAndRegions
     end,
-  sendingPacketsController(NodesAndRegions).
+  sendingPacketsController(NewNodesAndRegions).
 
-getQuarterDataAndSend({Region, Node}, ReceiverPID) ->
-  PacketData =
+getQuarterDataAndSend({Region, Node, NodesAndRegions}, ReceiverPID) ->
+  Data =
     try
-      gen_server:call({node_server, Node}, {update, Region})
-    catch _:_ -> {[], [], [], [], [], [], []}
+      gen_server:call({node_server, Node}, {update, Region,NodesAndRegions})
+    catch _:_ -> crash
     end,
-  if PacketData =:= {[], [], [], [], [], [], []} ->
-    NewNode = backup_servers:nodeDown(Region, Node);
-    true -> NewNode = Node
+  {PacketData,NewNode} =
+  if
+    Data =:= crash -> {{[], [], [], [], [], [], []},backup_servers:nodeDown(Region, Node)};
+    true -> backup_servers:stash(Region,Data),
+  {filter(Data),Node}
   end,
   ReceiverPID ! {Region, NewNode},
   gen_statem:cast(graphic, PacketData).
@@ -91,3 +93,13 @@ changeSettingsControllerPid() -> %%TODO: set the connection to server and to gra
       end
   end,
   changeSettingsControllerPid().
+
+filter({Launchers, Radars, Cities, AntiMissiles, Missiles, Interceptions, Explosions}) ->
+  FilteredLaunchers = lists:map(fun({Name, Status, _Position}) -> {Name,Status} end,Launchers),
+  FilteredRadars = lists:map(fun({Name, Status, _Position}) -> {Name,Status} end, Radars),
+  FilteredCities = lists:map(fun({Name, Status, _Position}) -> {Name,Status} end, Cities),
+  FilteredAntiMissiles = lists:map(fun({X, Y, Angle, _Velocity, _Ref}) -> {X, Y, Angle} end, AntiMissiles),
+  FilteredMissiles = lists:map(fun({X, Y, Angle, _Velocity, _Ref}) -> {X, Y, Angle} end, Missiles),
+  FilteredInterceptions = lists:map(fun({{X, Y}, _Counter}) -> {X, Y} end, Interceptions),
+  FilteredExplosions = lists:map(fun({{X, Y}, _Counter}) -> {X, Y} end, Explosions),
+  {FilteredLaunchers,FilteredRadars,FilteredCities,FilteredAntiMissiles,FilteredMissiles,FilteredInterceptions,FilteredExplosions}.
