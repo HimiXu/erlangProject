@@ -41,7 +41,7 @@ init([ServerInfo]) ->
   RadarsImages=loadRadarsImages(),
   LaunchersImages=loadLaunchersImages(),
   spawn_link(fun()-> draw_buttons(Panel, WxEnv, ServerInfo) end),
-  spawn_link(fun()-> nodesWindow(WxEnv) end),
+  spawn_link(fun()-> nodesWindow() end),
   wxFrame:show(Frame),
   wxPanel:connect(Canvas, paint, []),
   Background =wxImage:new("include/worldBackground.png"), %background
@@ -247,22 +247,25 @@ draw_buttons(Panel, WxEnv, ServerInfo)->
   wxStaticText:new(Panel, 11, "Radar Error:", [{pos, {350, 800}}, {size, {200, 20}}] ),
   wxStaticText:new(Panel, 12, "Radar Range:", [{pos, {350, 840}}, {size, {200, 20}}] ),
   wxStaticText:new(Panel, 13, "Radar Refresh Delay:", [{pos, {350, 880}}, {size, {200, 20}}] ),
+  ModeRadioBox=wxRadioBox:new(Panel, 14, "Mode", {650,800}, {170, 70}, ["Normal Mode", "God Mode"]),
+  wxButton:new(Panel, 15, [{label, "Restart"},{pos, {1020,850}},{size, {170,50}}]),
   wxPanel:connect(Panel, command_button_clicked),
-  loop(ServerInfo, MissilesSpeedSlider, MissilesQuantitySlider, GravitySlider, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay).
+  loop(ServerInfo, MissilesSpeedSlider, MissilesQuantitySlider, GravitySlider, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, ModeRadioBox).
 
-loop(ServerInfo, MissilesSpeedSlider, MissilesQuantitySlider, GravitySlider, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay) ->
+loop(ServerInfo, MissilesSpeedSlider, MissilesQuantitySlider, GravitySlider, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, ModeRadioBox) ->
   Settings = receive
                #wx{id = 7, event=#wxCommand{type = command_button_clicked}} ->
-                 {{missilesSpeed, wxSlider:getValue(MissilesSpeedSlider)}, {missilesQuantity, wxSlider:getValue(MissilesQuantitySlider)}, {gravity, wxSlider:getValue(GravitySlider)},
-                   {radarError, wxSlider:getValue(RadarErrorSlider)}, {radarRange, wxSlider:getValue(RadarRangeSlider)} ,{radarRefreshDelay, wxSlider:getValue(RadarRefreshDelay)}}
+                 {wxRadioBox:getSelection(ModeRadioBox), {missilesSpeed, wxSlider:getValue(MissilesSpeedSlider)}, {missilesQuantity, wxSlider:getValue(MissilesQuantitySlider)}, {gravity, wxSlider:getValue(GravitySlider)},
+                   {radarError, wxSlider:getValue(RadarErrorSlider)}, {radarRange, wxSlider:getValue(RadarRangeSlider)} ,{radarRefreshDelay, wxSlider:getValue(RadarRefreshDelay)}};
+               #wx{id = 15, event=#wxCommand{type = command_button_clicked}} -> {restart}
              end,
   ServerInfo ! Settings,
-  loop(ServerInfo, MissilesSpeedSlider, MissilesQuantitySlider, GravitySlider, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay).
+  loop(ServerInfo, MissilesSpeedSlider, MissilesQuantitySlider, GravitySlider, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, ModeRadioBox).
 
 
-nodesWindow(WxEnv) ->
+nodesWindow() ->
   register(nodeUpdatePid, self()),
-  wx:set_env(WxEnv),
+  wx:new(),
   Frame = wxFrame:new(wx:null(), -1, "Nodes", [{size,{405, 207}}]),
   Panel  = wxPanel:new(Frame),
   Canvas = wxPanel:new(Panel, [{size, {405, 207}}]),
@@ -271,10 +274,10 @@ nodesWindow(WxEnv) ->
   ClientDC = wxClientDC:new(Canvas),
   BufferDC = wxBufferedDC:new(ClientDC),
   wxDC:drawBitmap(BufferDC, wxBitmap:new(wxImage:new("include/NodesBackground.png")) , {0,0}),
-  T1 = wxStaticText:new(Canvas, 101, "", [{pos, {15, 40}}, {size, {175, 20}}] ),
-  T2 = wxStaticText:new(Canvas, 103, "", [{pos, {215, 40}}, {size, {175, 20}}] ),
-  T3 = wxStaticText:new(Canvas, 102, "", [{pos, {15, 110}}, {size, {175, 20}}] ),
-  T4 = wxStaticText:new(Canvas, 104, "", [{pos, {215, 110}}, {size, {175, 20}}] ),
+  T1 = wxStaticText:new(Canvas, 101, "Not set", [{pos, {15, 40}}, {size, {175, 20}}] ),
+  T2 = wxStaticText:new(Canvas, 103, "Not set", [{pos, {215, 40}}, {size, {175, 20}}] ),
+  T3 = wxStaticText:new(Canvas, 102, "Not set", [{pos, {15, 110}}, {size, {175, 20}}] ),
+  T4 = wxStaticText:new(Canvas, 104, "Not set", [{pos, {215, 110}}, {size, {175, 20}}] ),
   wxBufferedDC:destroy(BufferDC),
   wxClientDC:destroy(ClientDC),
   drawNodesLoop(Canvas, T1, T2, T3, T4).

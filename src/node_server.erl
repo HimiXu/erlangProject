@@ -60,12 +60,25 @@ init({Node1, Node2, Node3, Node4, Region}) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-handle_cast({updateSetting, {{missilesSpeed, MissilesSpeedSlider}, {missilesQuantity, MissilesQuantitySlider}, {gravity, GravitySlider},
+handle_cast({updateSetting, {0, {missilesSpeed, MissilesSpeedSlider}, {missilesQuantity, MissilesQuantitySlider}, {gravity, GravitySlider},
   {radarError, RadarErrorSlider}, {radarRange, RadarRangeSlider}, {radarRefreshDelay, RadarRefreshDelay}}}, {Tables, NodesAndRegions, Regions}) ->
   lists:foreach(fun(Region) ->
     script:changeSettings_script(Region, {missilesSpeed, MissilesSpeedSlider}, {missilesQuantity, MissilesQuantitySlider}, {gravity, GravitySlider},
       {radarError, RadarErrorSlider}, {radarRange, RadarRangeSlider}, {radarRefreshDelay, RadarRefreshDelay}) end, Regions),
   {noreply, {Tables, NodesAndRegions, Regions}};
+
+handle_cast({updateSetting, {1, {missilesSpeed, MissilesSpeedSlider}, {missilesQuantity, MissilesQuantitySlider}, {gravity, GravitySlider},
+  {radarError, _RadarErrorSlider}, {radarRange, _RadarRangeSlider}, {radarRefreshDelay, _RadarRefreshDelay}}}, {Tables, NodesAndRegions, Regions}) ->
+  lists:foreach(fun(Region) ->
+    script:changeSettings_script(Region, {missilesSpeed, MissilesSpeedSlider}, {missilesQuantity, MissilesQuantitySlider}, {gravity, GravitySlider},
+      {radarError, -5}, {radarRange, 20}, {radarRefreshDelay, 0.5}) end, Regions),
+  {noreply, {Tables, NodesAndRegions, Regions}};
+
+handle_cast({restart}, {Tables, NodesAndRegions, Regions}) ->
+  io:format("Got restart ~n", []),
+  %%TODO: add restart
+  {noreply, {Tables, NodesAndRegions, Regions}};
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PROPERTY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

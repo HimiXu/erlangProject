@@ -75,6 +75,12 @@ getNodes(NewNodesAndRegions, Size) ->
 
 changeSettingsControllerPid(Nodes) -> %%TODO: set the connection to server and to graphic when is possible
   receive
+    {restart} ->
+      lists:foreach(fun({NodeNum, Node}) -> try gen_server:cast({node_server, Node}, {restart}) of
+                                              ok -> ok
+                                            catch _:_ ->
+        io:format("Couldn't restart - node ~p is node exist~n", [NodeNum])
+                                            end end, Nodes);
     Settings ->
       lists:foreach(fun({NodeNum, Node}) -> try gen_server:cast({node_server, Node}, {updateSetting, Settings}) of
                                               ok -> ok
