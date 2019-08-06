@@ -44,7 +44,9 @@ callback_mode() ->
 idle(cast, {tick, TimeDiff}, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->
   CoinFlip = rand:uniform(1000),
   if
-    (CoinFlip > 990 - (MissileScale * 9)) and (Mod > 0) -> generateMissile(Mod, MissileSpeed, GRAVITY);
+    (CoinFlip > 990 - (MissileScale * 9)) and (Mod > 0) and (Mod < 3) -> generateMissile(Mod, MissileSpeed, GRAVITY);
+    (CoinFlip > 990 - (MissileScale * 9)) and (Mod > 0) and (Mod =:= 3) ->
+      generateMissile(Mod, MissileSpeed, GRAVITY), generateMissile(Mod, MissileSpeed, GRAVITY);
     true -> none
   end,
   lists:foreach(fun(Ref) -> missile:tick(Ref, TimeDiff) end, Missiles),
@@ -81,7 +83,7 @@ generateMissile(Mod, MissileSpeed, GravityScale) ->
   GRAVITY = GravityScale * 0.01,     % 0.065,
   VelY = rand:uniform(MissileSpeed) / 10,
   Left = rand:uniform(600),
-  Right = rand:uniform(600)+600,
+  Right = rand:uniform(600) + 600,
   Both = rand:uniform(1200),
   PosX = case Mod of
            1 -> Left;

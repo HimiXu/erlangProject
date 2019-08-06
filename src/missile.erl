@@ -66,7 +66,7 @@ falling(cast, interception, {{_Acceleration, _Velocity, Position}, _Targets, Ref
   node_server:updateStatus({missile, Ref, {intercepted, Position}}),
   mclock:unregister(missile, Ref),
   {stop, normal}.
-terminate(_Reason, _State, _Data) ->
+terminate(_Reason, falling, _Data) ->
   ok.
 
 updatePosition({Vx, Vy}, {Px, Py}, TimeDiff) ->

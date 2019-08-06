@@ -19,10 +19,10 @@ start_link(Node1, Node2, Node3, Node4) ->
   gen_server:start_link({local, backup_server}, ?MODULE, {Node1, Node2, Node3, Node4}, []).
 
 init({Node1, Node2, Node3, Node4}) ->
-  {ok, {#{a => Node1,
+  {ok, {#{}, #{a => Node1,
     b => Node2,
     c => Node3,
-    d => Node4}, #{}, [Node1, Node2, Node3, Node4], []}}.
+    d => Node4}, [Node1, Node2, Node3, Node4], []}}.
 
 stash(Region, Backup) ->
   gen_server:cast(backup_server, {backup, Region, Backup}).
@@ -42,7 +42,7 @@ handle_cast({nodeUp, Node}, {Backups, RegionsNode, Nodes, [{FirstNode, FirstRegi
   %% release first node in queue from duty
   rpc:cast(FirstNode, node_server, release, [FirstRegion]),
   %% TODO initialization from existing
-  rpc:cast(FirstNode, node_server, init, [FirstRegion,Backup]),
+  rpc:cast(FirstNode, node_server, init, [FirstRegion, Backup]),
   %% make the new node take over
   {reply, {FirstRegion, Backup}, {Backups, RegionsNode, [Node | Nodes], DutyFIFO}}.
 
@@ -52,10 +52,17 @@ handle_call({nodeDown, Region, Node}, _From, {Backups, RegionsNode, Nodes, DutyF
   %% remove node from list
   NodesUp = Nodes -- [Node],
   %% pick randomly a node
-  NodeTakeOver = lists:nth(rand:uniform(length(NodesUp)), NodesUp),
-  %% make node in charge
+  Random =
+    try
+      rand:uniform(length(NodesUp))
+    catch
+      _:_ -> 1
+    end,
+  NodeTakeOver = lists:nth(Random, NodesUp),
+%% make node in charge
+  io:format("Node ~p takes over region ~p~n",[NodeTakeOver,Region]),
   rpc:cast(NodeTakeOver, node_server, takeover, [{Region, Backup}]),
-  %% reply with the new node in charge of Region
+%% reply with the new node in charge of Region
   {reply, NodeTakeOver, {Backups, RegionsNode#{Region => NodeTakeOver}, NodesUp, DutyFIFO ++ [{NodeTakeOver, Region}]}}.
 
 terminate(_Reason, _State, _Data) ->
