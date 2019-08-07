@@ -54,17 +54,24 @@ getQuarterDataAndSend({Region, Node, NodesAndRegions}, ReceiverPID) ->
     end,
   {PacketData, NewNode} =
     if
-      Data =:= crash -> Reply = backup_servers:nodeDown(Region, Node),
+      Data =:= crash ->
+        %% in case of crash, nominate a living node to that region
+        Reply = backup_servers:nodeDown(Region, Node),
+        %% refresh the settings
         graphicConnectionPID ! apply,
+        %% show up status bar the active nodes
         nodeUpdatePid ! {Region,Reply},
-        io:format("~p~n", [{Region,Reply}]),
         {{[], [], [], [], [], [], []}, Reply};
-      true -> backup_servers:stash(Region, Data),
+      true ->
+        %% no crash, just stash the data in backup and keep the responsible node
+        backup_servers:stash(Region, Data),
         {filter(Data), Node}
     end,
+  %% send to loop the current node responsible for the region
   ReceiverPID ! {Region, NewNode},
   gen_statem:cast(graphic, PacketData).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% receive block of loop of regions and their nodes %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%55
 getNodes(NewNodesAndRegions, 4) ->
   NewNodesAndRegions;
 getNodes(NewNodesAndRegions, Size) ->
