@@ -270,21 +270,20 @@ nodesWindow(Panel, WxEnv) ->
   T2 = wxStaticText:new(Panel, 103, "Not set", [{pos, {1015, 800}}, {size, {175, 20}}] ),
   T3 = wxStaticText:new(Panel, 102, "Not set", [{pos, {840, 820}}, {size, {175, 20}}] ),
   T4 = wxStaticText:new(Panel, 104, "Not set", [{pos, {1015, 820}}, {size, {175, 20}}] ),
-  drawNodesLoop(Panel,T1, T2, T3, T4).
+  drawNodesLoop(T1, T2, T3, T4).
 
 
 
-drawNodesLoop(Panel,T1, T2, T3, T4) ->
-  {T1N,T2N,T3N,T4N} =
+drawNodesLoop(T1, T2, T3, T4) ->
   receive
     [{a, Node1}, {b, Node2}, {c, Node3}, {d, Node4}] ->
-      wxStaticText:destroy(T1),
-      wxStaticText:destroy(T2),
-      wxStaticText:destroy(T3),
-      wxStaticText:destroy(T4),
-      {wxStaticText:new(Panel, 101, atom_to_list(Node1), [{pos, {840, 800}}, {size, {175, 20}}] ),
-      wxStaticText:new(Panel, 103, atom_to_list(Node2), [{pos, {1015, 800}}, {size, {175, 20}}] ),
-      wxStaticText:new(Panel, 102, atom_to_list(Node3), [{pos, {840, 820}}, {size, {175, 20}}] ),
-      wxStaticText:new(Panel, 104, atom_to_list(Node4), [{pos, {1015, 820}}, {size, {175, 20}}] )}
+      wxStaticText:setLabel(T1, atom_to_list(Node1)),
+      wxStaticText:setLabel(T2, atom_to_list(Node2)),
+      wxStaticText:setLabel(T3, atom_to_list(Node3)),
+      wxStaticText:setLabel(T4, atom_to_list(Node4));
+    {a,Node} -> wxStaticText:setLabel(T1, atom_to_list(Node));
+    {b,Node} -> wxStaticText:setLabel(T2, atom_to_list(Node));
+    {c,Node} -> wxStaticText:setLabel(T3, atom_to_list(Node));
+    {d,Node} -> wxStaticText:setLabel(T4, atom_to_list(Node))
   end,
-  drawNodesLoop(Panel,T1N, T2N, T3N, T4N).
+  drawNodesLoop(T1, T2, T3, T4).

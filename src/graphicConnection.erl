@@ -16,42 +16,41 @@
 init([Node1, Node2, Node3, Node4]) ->                 %%TODO: see what kind of information of the Nodes server you need
   ChangeSettingsControllerPid = spawn_link(fun() ->
     changeSettingsControllerPid([{1, Node1}, {2, Node2}, {3, Node3}, {4, Node4}], {}) end),
+
   register(graphicConnectionPID, ChangeSettingsControllerPid), %TODO: maybe we will register it  as global
   timer:sleep(1000), %%TODO: see how much time is needed for the unit to be ready.
   ReceiverPID = spawn_link(fun() -> sendingPacketsController(
     [{a, Node1},
       {b, Node2},
       {c, Node3},
-      {d, Node4}], 0) end), %Sending Packets Controller
+      {d, Node4}]) end), %Sending Packets Controller
+  nodeUpdatePid ! [{a, Node1}, {b, Node2}, {c, Node3}, {d, Node4}],
   %% set refresh rate
   spawn_link(fun F() -> timer:sleep(20), ReceiverPID ! tick, F() end),
   {ok, self()}.
 
 
-sendingPacketsController(NodesAndRegions, Counter) ->
+sendingPacketsController(NodesAndRegions) ->
   %% send nodes and regions,
-  if Counter =:= 0 ->
-    nodeUpdatePid ! NodesAndRegions;
-    true -> none
-  end,
+
   %% get data from servers
   ReceiverPID = self(),
   NewNodesAndRegions =
     receive
-%% receive order - send all the nodes update signal
+    %% receive order - send all the nodes update signal
       tick -> lists:foreach(fun({Region, Node}) ->
         spawn(fun() -> getQuarterDataAndSend({Region, Node, NodesAndRegions}, ReceiverPID) end) end, NodesAndRegions),
         getNodes([], 0)
     after 1000 ->
       NodesAndRegions
     end,
-%% get data on rising node
+  %% get data on rising node
   receive
     {nodeUp, Node} -> backup_servers:nodeUp(Node)
   after 1 ->
     continue
   end,
-  sendingPacketsController(NewNodesAndRegions, (Counter + 1) rem 50).
+  sendingPacketsController(NewNodesAndRegions).
 
 getQuarterDataAndSend({Region, Node, NodesAndRegions}, ReceiverPID) ->
   Data =
@@ -63,6 +62,8 @@ getQuarterDataAndSend({Region, Node, NodesAndRegions}, ReceiverPID) ->
     if
       Data =:= crash -> Reply = backup_servers:nodeDown(Region, Node),
         graphicConnectionPID ! apply,
+        nodeUpdatePid ! {Region,Reply},
+        io:format("~p~n", [{Region,Reply}]),
         {{[], [], [], [], [], [], []}, Reply};
       true -> backup_servers:stash(Region, Data),
         {filter(Data), Node}
