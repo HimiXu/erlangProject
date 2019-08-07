@@ -1,18 +1,10 @@
-%%%-------------------------------------------------------------------
-%%% @author ofir
-%%% @copyright (C) 2019, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 28. Jul 2019 9:48 AM
-%%%-------------------------------------------------------------------
 -module(graphicConnection).
--author("ofir").
+-author("ofir & raz").
 
 %% API
 -export([init/1]).
 
-%initial the graphic  Connection
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% initial the graphic  Connection %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 init([Node1, Node2, Node3, Node4]) ->
   ChangeSettingsControllerPid = spawn_link(fun() ->
     changeSettingsControllerPid([{1, Node1}, {2, Node2}, {3, Node3}, {4, Node4}], {}) end),
@@ -29,7 +21,9 @@ init([Node1, Node2, Node3, Node4]) ->
   spawn_link(fun F() -> timer:sleep(20), ReceiverPID ! tick, F() end),
   {ok, self()}.
 
-%A process that control the send of packets to the graphic unit
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%A process that control the send of packets to the graphic unit%%%%%%%%%%%%%%%%%%%%%%%%
 sendingPacketsController(NodesAndRegions) ->
   %% get data from servers
   ReceiverPID = self(),
@@ -49,8 +43,9 @@ sendingPacketsController(NodesAndRegions) ->
     continue
   end,
   sendingPacketsController(NewNodesAndRegions).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%this function ask for data update from the Node_Server, and send it to the graphic unit
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%this function ask for data update from the Node_Server, and send it to the graphic unit%%%%%%%%%%%%%%%%%%%%%%%%
 getQuarterDataAndSend({Region, Node, NodesAndRegions}, ReceiverPID) ->
   Data =
     try
@@ -76,9 +71,10 @@ getNodes(NewNodesAndRegions, Size) ->
   receive
     {Region, Node} -> getNodes([{Region, Node} | NewNodesAndRegions], Size + 1)
   end.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-%this function gets an update of the simulator settings from buttons and then send it to the nodes servers
+%%%%%%%%%%%%%%%%%%%%%%%%%%%this function gets an update of the simulator settings from buttons and then send it to the nodes servers%%%%%%%%%%%%
 changeSettingsControllerPid(Nodes, CurrentSettings) ->
   NewSettings =
     receive
@@ -109,6 +105,10 @@ changeSettingsControllerPid(Nodes, CurrentSettings) ->
     end,
   changeSettingsControllerPid(Nodes, NewSettings).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%filter the Data to fit to graphic needs%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 filter({Launchers, Radars, Cities, AntiMissiles, Missiles, Interceptions, Explosions}) ->
   FilteredLaunchers = lists:map(fun({Name, Status, _Position}) -> {Name, Status} end, Launchers),
   FilteredRadars = lists:map(fun({Name, Status, _Position}) -> {Name, Status} end, Radars),
@@ -118,3 +118,5 @@ filter({Launchers, Radars, Cities, AntiMissiles, Missiles, Interceptions, Explos
   FilteredInterceptions = lists:map(fun({{X, Y}, _Counter}) -> {X, Y} end, Interceptions),
   FilteredExplosions = lists:map(fun({{X, Y}, _Counter}) -> {X, Y} end, Explosions),
   {FilteredLaunchers, FilteredRadars, FilteredCities, FilteredAntiMissiles, FilteredMissiles, FilteredInterceptions, FilteredExplosions}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
