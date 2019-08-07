@@ -42,10 +42,10 @@ init({ClockPID, TimeDiff, Mod, MissileScale, MissileSpeed, GRAVITY}) ->
 callback_mode() ->
   state_functions.
 idle(cast, {tick, TimeDiff}, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->
-  CoinFlip = rand:uniform(1000),
+  CoinFlip = rand:uniform(7000),
   if
-    (CoinFlip > 990 - (MissileScale * 9)) and (Mod > 0) and (Mod < 3) -> generateMissile(Mod, MissileSpeed, GRAVITY);
-    (CoinFlip > 990 - (MissileScale * 9)) and (Mod > 0) and (Mod =:= 3) ->
+    (CoinFlip > 6990 - (MissileScale * 9)) and (Mod > 0) and (Mod < 3) -> generateMissile(Mod, MissileSpeed, GRAVITY);
+    (CoinFlip > 6990 - (MissileScale * 9)) and (Mod > 0) and (Mod =:= 3) ->
       generateMissile(Mod, MissileSpeed, GRAVITY), generateMissile(Mod, MissileSpeed, GRAVITY);
     true -> none
   end,

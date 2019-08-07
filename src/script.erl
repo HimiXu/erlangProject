@@ -49,7 +49,7 @@ script(Region) ->
       city:start_link({{431, 637}, london}),
       city:start_link({{127, 595}, sydney}),
       {RefL, _, _} = launcher:start_link({{365, 565}, 1200, 2}),
-      radar:start_link({{189, 652}, 1, [RefL], 1, 3}),
+      radar:start_link({{189, 652}, 1, [RefL,1], 1, 3}),
       mclock:start_link(1, 0);
     d -> %% AREA {600,1200}/{400/800}
       city:start_link({{919, 755}, budapest}),
@@ -58,23 +58,23 @@ script(Region) ->
       city:start_link({{725, 684}, rome}),
       city:start_link({{925, 646}, stockholm}),
       {RefL, _, _} = launcher:start_link({{808, 572}, 1200, 1}),
-      radar:start_link({{1166, 671}, 1, [RefL], 1, 1}),
-      radar:start_link({{753, 596}, 1, [RefL], 1, 2}),
-      radar:start_link({{658, 440}, 1, [RefL], 1, 4}),
+      radar:start_link({{1166, 671}, 1, [RefL,2], 1, 1}),
+      radar:start_link({{753, 596}, 1, [RefL,2], 1, 2}),
+      radar:start_link({{658, 440}, 1, [RefL,2], 1, 4}),
       mclock:start_link(1, 0)
   end.
 
 
 recovery({Launchers, Radars, Cities, AntiMissiles, Missiles}, Region) ->
-  lists:foreach(fun({X, Y, _Angle, Velocity, _Ref}) ->
-    mclock:generateMissile(make_ref(), {0, 0.065}, Velocity, {X, Y}) end, Missiles), %%TODO: see how the change {0, 0.065} to be the actual ACCELERATION
-  lists:foreach(fun({X, Y, _Angle, Velocity, _Ref}) ->
-    mclock:generateAntiMissile(make_ref(), Velocity, {X, Y}) end, AntiMissiles),
+  lists:foreach(fun({X, Y, _Angle, Velocity, Ref}) ->
+    mclock:generateMissile(Ref, {0, 0.065}, Velocity, {X, Y}) end, Missiles), %%TODO: see how the change {0, 0.065} to be the actual ACCELERATION
+  lists:foreach(fun({X, Y, _Angle, Velocity, Ref}) ->
+    mclock:generateAntiMissile(Ref, Velocity, {X, Y}) end, AntiMissiles),
   LauncherRefs = lists:map(fun({Ref, _Status, Position}) ->
     launcher:start_link({Position, 1200, Ref}),
     Ref end, Launchers),
   lists:foreach(fun({Ref, _Status, Position}) ->
-    radar:start_link({Position, 1, LauncherRefs, 1, Ref})
+    radar:start_link({Position, 1, [1,2], 1, Ref})
                 end, Radars),
   lists:foreach(fun({Name, Status, Position}) ->
     if Status =:= alive ->
