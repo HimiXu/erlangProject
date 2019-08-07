@@ -1,13 +1,5 @@
-%%%-------------------------------------------------------------------
-%%% @author raz
-%%% @copyright (C) 2019, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 27. Jul 2019 11:27
-%%%-------------------------------------------------------------------
 -module(mclock).
--author("raz").
+-author("raz & ofir").
 -behaviour(gen_statem).
 
 %% API
@@ -16,60 +8,109 @@
 -export([init/1, callback_mode/0, terminate/3]).
 -export([idle/3]).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% MODS: 0 none, 1 left, 2 right, 3 both %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%% MODS: 0 none, 1 left, 2 right, 3 both
 start_link(TimeDiff, Mod) ->
-  MissileScale = 5, %initial values
+  %initial values
+  MissileScale = 5,
   MissileSpeed = 5,
   GRAVITY = 5,
   ClockPID = spawn(fun F() -> timer:sleep(TimeDiff * 20), mclock:tick(TimeDiff), F() end),
   gen_statem:start_link({local, mclock}, ?MODULE, {ClockPID, TimeDiff, Mod, MissileScale, MissileSpeed, GRAVITY}, []).
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Timer tick %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tick(TimeDiff) ->
   gen_statem:cast(mclock, {tick, TimeDiff}).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Missile/Antimissile register %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 register(Type, Ref) ->
   gen_statem:cast(mclock, {register, Type, Ref}).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-stop() ->
-  gen_statem:stop(mclock).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Missile/Antimissile unregister %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 unregister(Type, Ref) ->
   gen_statem:cast(mclock, {unregister, Type, Ref}).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% stop %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+stop() ->
+  gen_statem:stop(mclock).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% change MOD of operation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 setMod(Region) ->
   gen_statem:cast(mclock, {setMod, Region}).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 init({ClockPID, TimeDiff, Mod, MissileScale, MissileSpeed, GRAVITY}) ->
   {ok, idle, {ClockPID, TimeDiff, Mod, [], [], MissileScale, MissileSpeed, GRAVITY}}.
 
 callback_mode() ->
   state_functions.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Timer tick %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 idle(cast, {tick, TimeDiff}, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->
+  %% randomize the missile generation per tick
   CoinFlip = rand:uniform(3000),
   if
-    (CoinFlip > 2990 - (MissileScale * 9)) and (Mod > 0) and (Mod < 3) -> generateMissile(Mod, MissileSpeed, GRAVITY);
+    (CoinFlip > 2990 - (MissileScale * 9)) and (Mod > 0) and (Mod < 3) ->
+      %% mclock of regions A or B: generate a missile
+      generateMissile(Mod, MissileSpeed, GRAVITY);
     (CoinFlip > 2990 - (MissileScale * 9)) and (Mod > 0) and (Mod =:= 3) ->
+      %% mclock of regions A and B: generate 2 missiles
       generateMissile(Mod, MissileSpeed, GRAVITY), generateMissile(Mod, MissileSpeed, GRAVITY);
     true -> none
   end,
+  %% broadcast the tick
   lists:foreach(fun(Ref) -> missile:tick(Ref, TimeDiff) end, Missiles),
   lists:foreach(fun(Ref) -> antimissile:tick(Ref, TimeDiff) end, AntiMissiles),
   {next_state, idle, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}};
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% settings update :                            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% MissileScale : number of missiles statistics %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% MissileSpeed : missiles velocity statistics  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Gravity : acceleration pull                  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 idle(cast, {settingUpdate, NewMissileScale, NewMissileSpeed, NewGRAVITY}, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles, _MissileScale, _MissileSpeed, _GRAVITY}) ->
   {next_state, idle, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles, NewMissileScale, NewMissileSpeed, NewGRAVITY}};
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% missile registration %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 idle(cast, {register, missile, Ref}, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->
   {next_state, idle, {ClockPID, TimeDiff, Mod, [Ref | Missiles], AntiMissiles, MissileScale, MissileSpeed, GRAVITY}};
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% antimissile registration %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 idle(cast, {register, antimissile, Ref}, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->
   {next_state, idle, {ClockPID, TimeDiff, Mod, Missiles, [Ref | AntiMissiles], MissileScale, MissileSpeed, GRAVITY}};
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% missile unregistration %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 idle(cast, {unregister, missile, Ref}, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->
   {next_state, idle, {ClockPID, TimeDiff, Mod, Missiles -- [Ref], AntiMissiles, MissileScale, MissileSpeed, GRAVITY}};
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% antimissile unregistration %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 idle(cast, {unregister, antimissile, Ref}, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->
   {next_state, idle, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles -- [Ref], MissileScale, MissileSpeed, GRAVITY}};
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% set MOD by region %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 idle(cast, {setMod, NewRegion}, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->
   NewMod = case NewRegion of
              a -> 1;
@@ -78,10 +119,15 @@ idle(cast, {setMod, NewRegion}, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles
              d -> 0
            end,
   {next_state, idle, {ClockPID, TimeDiff, Mod + NewMod, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}}.
-terminate(Reason, _State, _Data) ->
-  io:format("Missiles clock terminated. Reason: ~p~n", [Reason]),
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+terminate(_Reason, _State, _Data) ->
+%%  io:format("Missiles clock terminated. Reason: ~p~n", [Reason]),
   ok.
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% generate missile randomly %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 generateMissile(Mod, MissileSpeed, GravityScale) ->
   GRAVITY = GravityScale * 0.01,     % 0.065,
   VelY = rand:uniform(MissileSpeed) / 10,
@@ -98,15 +144,19 @@ generateMissile(Mod, MissileSpeed, GravityScale) ->
     true -> VelX = (-1) * rand:uniform(MissileSpeed) / 5
   end,
   generateMissile(make_ref(), {0, GRAVITY}, {VelX, VelY}, {PosX, -10}).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%generateMissile(Ref, Velocity, Position, Acceleration) ->
-%%  generateMissile(Ref, Acceleration, Velocity, Position).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% generate missile as requested %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 generateMissile(Ref, Acceleration, Velocity, Position) ->
   missile:start_link({{Acceleration, Velocity, Position}, {[
     {budapest, 919, 755}, {newYork, 370, 494}, {paris, 1079, 688}, {jerusalem, 550, 778}, {moscow, 1078, 574},
     {london, 431, 637}, {rome, 725, 684}, {stockholm, 925, 646}, {sydney, 127, 595}, {washington, 483, 425}]
     , [], [], 800}, Ref}).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% generate antimissile as requested %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 generateAntiMissile(Ref, Velocity, Position) ->
   antimissile:start_link({{{0, 0}, Velocity, Position}, 1200, Ref}).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
