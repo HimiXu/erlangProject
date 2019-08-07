@@ -1,13 +1,5 @@
-%%%-------------------------------------------------------------------
-%%% @author raz
-%%% @copyright (C) 2019, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 27. Jul 2019 18:18
-%%%-------------------------------------------------------------------
 -module(script).
--author("raz").
+-author("Ofir & Raz").
 
 %% API
 -export([script/1, changeSettings_script/7, recovery/2, startCities/1]).
@@ -17,6 +9,8 @@
 %radars Locations: {{1166, 671}, radar1}, {{753, 596}, radar2}, {{189, 652}, radar3}, {{658, 440}, radar4}
 %launcher Locations: {{808, 572}, launcher1}, {{365, 565}, launcher2}, {{1143, 753}, launcher3}, {{48, 708}, launcher4}
 %% Node1 - top left, Node 2 - top right, Node 3 - bottom left, Node 4 - bottom right
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%script for start of simulation%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 script(Region) ->
   case Region of
     a -> %% AREA {0,600}/{0,400}
@@ -47,6 +41,10 @@ script(Region) ->
       mclock:start_link(1, 0)
   end.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%script for start of cities%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 startCities(Region) ->
   case Region of
     c -> %% AREA {0,600}/{400/800}
@@ -64,6 +62,10 @@ startCities(Region) ->
     _Other ->
       none
   end.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%Recovery script- handle recovery of Node%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 recovery({Launchers, Radars, Cities, AntiMissiles, Missiles}, Region) ->
   lists:foreach(fun({X, Y, _Angle, Velocity, Ref}) ->
@@ -83,6 +85,11 @@ recovery({Launchers, Radars, Cities, AntiMissiles, Missiles}, Region) ->
         city:hit(Name) end end, Cities),
   mclock:setMod(Region).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%The script for changing the setting of the simulation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 changeSettings_script(Region, {missilesSpeed, MissilesSpeedSlider}, {missilesQuantity, MissilesQuantitySlider}, {gravity, GravitySlider},
     {radarError, RadarErrorSlider}, {radarRange, RadarRangeSlider}, {radarRefreshDelay, RadarRefreshDelay}) ->
   case Region of
@@ -99,6 +106,8 @@ changeSettings_script(Region, {missilesSpeed, MissilesSpeedSlider}, {missilesQua
       gen_statem:cast(list_to_atom(lists:append("radar", [2])), {settingUpdate, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, GravitySlider}),
       gen_statem:cast(list_to_atom(lists:append("radar", [4])), {settingUpdate, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, GravitySlider})
   end.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 
