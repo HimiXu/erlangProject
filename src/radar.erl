@@ -17,19 +17,7 @@
 -export([idle/3]).
 
 
-%%start_link({Position, MissileTimeDiff, Launchers, RefreshT, Ref}) ->
-%%  ClockPID = spawn(fun F() -> timer:sleep(RefreshT * 1000), radar:tick(Ref), F() end),
-%%  Name = list_to_atom(lists:append("radar", ref_to_list(Ref))),
-%%  {Ref, Name, gen_statem:start_link({local, Name}, ?MODULE, {Position, MissileTimeDiff, Launchers, ClockPID, Ref}, [])}.
-%%
-%%hit(Ref) ->
-%%  Name = list_to_atom(lists:append("radar", ref_to_list(Ref))),
-%%  gen_statem:cast(Name, hit).
-%%tick(Ref) ->
-%%  Name = list_to_atom(lists:append("radar", ref_to_list(Ref))),
-%%  gen_statem:cast(Name, tick).
-
-start_link({Position, MissileTimeDiff, Launchers, _RefreshT, Ref}) -> %TODO: delete _RefreshT here
+start_link({Position, MissileTimeDiff, Launchers, _RefreshT, Ref}) ->
   Name = list_to_atom(lists:append("radar", [Ref])),
   {Ref, Name, gen_statem:start_link({local, Name}, ?MODULE, {Position, MissileTimeDiff, Launchers, Ref}, [])}.
 
@@ -82,7 +70,6 @@ terminate(_Reason, _State, _Data) ->
 calcTargets([], _MissileTimeDiff, Targets, _RadarErrorSlider, _GravitySlider) -> Targets;
 calcTargets([{{Vx, Vy}, {Px, Py}} | Missiles], MissileTimeDiff, Targets, RadarErrorSlider, GravitySlider) ->
   DeltaT = lists:nth(rand:uniform(20), lists:seq(13, 32)) * MissileTimeDiff,
-  %% TODO add define
   GRAVITY = GravitySlider * 0.01,
   ErrorX = (rand:uniform(75 + RadarErrorSlider * 5) - 50) / 40,
   ErrorY = (rand:uniform(75 + RadarErrorSlider * 5) - 50) / 40,

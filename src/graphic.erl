@@ -29,7 +29,7 @@
 start_link(ServerInfo) ->
   gen_statem:start_link({local, ?MODULE}, ?MODULE, [ServerInfo], []).
 
-
+%initial the graphic
 init([ServerInfo]) ->
   wx:new(),
   WxEnv = wx:get_env(),
@@ -62,9 +62,8 @@ callback_mode() ->
 packetsDeliver(info, _OldState, Data) ->
   {keep_state, Data};
 
+%the main state- in case of packet deliver this function is called
 packetsDeliver(cast, PacketData, Data) ->
-%%  io:format("DATA==============================================~p~n",
-%%    [PacketData]),
   NumOfPacketsDelivered=maps:get(numOfPacketsDelivered, Data),
   NewData=
     if
@@ -167,9 +166,9 @@ drawAntiMissiles (_WxEnv, _BufferDC, _MissileAndExplosionImages, []) ->
 
 drawAntiMissiles (WxEnv, BufferDC, MissileAndExplosionImages, [{X, Y, Angle}|OtherAntiMissiles]) ->
   %wx:set_env(WxEnv),
-  Image= wxImage:rotate (element(1,MissileAndExplosionImages), Angle, {15, 24}), %%rotate(This, Angle, Centre_of_rotation) %%TODO: check the angle unit, make sure you choose the right center
+  Image= wxImage:rotate (element(1,MissileAndExplosionImages), Angle, {15, 24}), %%rotate(This, Angle, Centre_of_rotation)
   Bitmap= wxBitmap:new(Image),
-  wxDC:drawBitmap(BufferDC, Bitmap, {X,Y}), %%TODO: check maybe it is the opposite
+  wxDC:drawBitmap(BufferDC, Bitmap, {X,Y}),
   wxBitmap:destroy(Bitmap),
   wxImage:destroy(Image),
   drawAntiMissiles (WxEnv, BufferDC, MissileAndExplosionImages, OtherAntiMissiles).
@@ -181,9 +180,9 @@ drawMissiles (_WxEnv, _BufferDC, _MissileAndExplosionImages, []) ->
 
 drawMissiles (WxEnv, BufferDC, MissileAndExplosionImages, [{X, Y, Angle}|OtherMissiles]) ->
   %wx:set_env(WxEnv),
-  Image= wxImage:rotate (element(2,MissileAndExplosionImages), Angle, {13, 21}), %%rotate(This, Angle, Centre_of_rotation) %%TODO: check the angle unit, make sure you choose the right center
+  Image= wxImage:rotate (element(2,MissileAndExplosionImages), Angle, {13, 21}), %%rotate(This, Angle, Centre_of_rotation)
   Bitmap= wxBitmap:new(Image),
-  wxDC:drawBitmap(BufferDC, Bitmap, {X,Y}), %%TODO: check maybe it is the opposite
+  wxDC:drawBitmap(BufferDC, Bitmap, {X,Y}),
   wxBitmap:destroy(Bitmap),
   wxImage:destroy(Image),
   drawMissiles (WxEnv, BufferDC, MissileAndExplosionImages, OtherMissiles).
@@ -208,7 +207,7 @@ drawExplosions(WxEnv, BufferDC, MissileAndExplosionImages, [{X, Y}|OtherExplosio
   wxDC:drawBitmap(BufferDC, element(4,MissileAndExplosionImages), {X,Y}),
   drawExplosions(WxEnv, BufferDC, MissileAndExplosionImages, OtherExplosions).
 
-
+%the draw faction
 draw(PacketData, Data) ->
   CitiesImages=maps:get(citiesImages, Data),
   MissileAndExplosionImages=maps:get(missileAndExplosionImages, Data),
@@ -224,6 +223,7 @@ draw(PacketData, Data) ->
   drawInterceptions(WxEnv, BufferDC, MissileAndExplosionImages, element(6, PacketData)),
   drawExplosions(WxEnv, BufferDC, MissileAndExplosionImages, element(7, PacketData)).
 
+%the final stage in drawing (after the arrival of 4 packets
 finishDrawing(Data) ->
   BufferDC=maps:get(bufferDC, Data),
   ClientDC=maps:get(clientDC, Data),
@@ -231,7 +231,7 @@ finishDrawing(Data) ->
   wxClientDC:destroy(ClientDC).
 
 
-
+%draw buttons function
 draw_buttons(Panel, WxEnv, ServerInfo)->
   wx:set_env(WxEnv),
   MissilesSpeedSlider = wxSlider:new (Panel, 1, 5, 1, 10, [{pos, {200, 800}}, {size, {100, 20}}]),
@@ -252,6 +252,8 @@ draw_buttons(Panel, WxEnv, ServerInfo)->
   wxPanel:connect(Panel, command_button_clicked),
   loop(ServerInfo, MissilesSpeedSlider, MissilesQuantitySlider, GravitySlider, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, ModeRadioBox).
 
+
+%handle the button event
 loop(ServerInfo, MissilesSpeedSlider, MissilesQuantitySlider, GravitySlider, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, ModeRadioBox) ->
   Settings = receive
                #wx{id = 7, event=#wxCommand{type = command_button_clicked}} ->
@@ -263,6 +265,7 @@ loop(ServerInfo, MissilesSpeedSlider, MissilesQuantitySlider, GravitySlider, Rad
   loop(ServerInfo, MissilesSpeedSlider, MissilesQuantitySlider, GravitySlider, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, ModeRadioBox).
 
 
+%create window that of the active nodes
 nodesWindow(Panel, WxEnv) ->
   register(nodeUpdatePid, self()),
   wx:set_env(WxEnv),
@@ -272,8 +275,7 @@ nodesWindow(Panel, WxEnv) ->
   T4 = wxStaticText:new(Panel, 104, "Not set", [{pos, {1015, 820}}, {size, {175, 20}}] ),
   drawNodesLoop(T1, T2, T3, T4).
 
-
-
+%the update of the the active nodes
 drawNodesLoop(T1, T2, T3, T4) ->
   receive
     [{a, Node1}, {b, Node2}, {c, Node3}, {d, Node4}] ->

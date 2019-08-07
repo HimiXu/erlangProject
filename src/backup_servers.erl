@@ -41,7 +41,6 @@ handle_cast({nodeUp, Node}, {Backups, RegionsNode, Nodes, [{FirstNode, FirstRegi
   Backup = maps:get(FirstRegion, Backups),
   %% release first node in queue from duty
   rpc:cast(FirstNode, node_server, release, [FirstRegion]),
-  %% TODO initialization from existing
   rpc:cast(FirstNode, node_server, init, [FirstRegion, Backup]),
   %% make the new node take over
   {reply, {FirstRegion, Backup}, {Backups, RegionsNode, [Node | Nodes], DutyFIFO}}.

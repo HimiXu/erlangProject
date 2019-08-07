@@ -108,21 +108,21 @@ handle_cast({launch, Launcher, Target}, {Tables, NodesAndRegions, Regions, Missi
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PROPERTY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 handle_cast({updateStatus, city, Name, {Status, Position}}, {Tables, NodesAndRegions, Regions, MissilesInSightFromOthers}) ->
   CitiesTable = maps:get(ct, Tables, error),
-  io:format("City ~p at ~p status: ~p~n", [Name, Position, Status]),
+  %%io:format("City ~p at ~p status: ~p~n", [Name, Position, Status]),
   ets:insert(CitiesTable, {Name, {Status, Position}}),
   {noreply, {Tables, NodesAndRegions, Regions, MissilesInSightFromOthers}};
 
 %----------------------------------------------------------------------------%
 handle_cast({updateStatus, launcher, Ref, {Status, Position}}, {Tables, NodesAndRegions, Regions, MissilesInSightFromOthers}) ->
   LaunchersTable = maps:get(lt, Tables, error),
-  io:format("Launcher ~p at ~p status: ~p~n", [Ref, Position, Status]),
+  %%io:format("Launcher ~p at ~p status: ~p~n", [Ref, Position, Status]),
   ets:insert(LaunchersTable, {Ref, {Status, Position}}),
   {noreply, {Tables, NodesAndRegions, Regions, MissilesInSightFromOthers}};
 
 %----------------------------------------------------------------------------%
 handle_cast({updateStatus, radar, Ref, {Status, Position}}, {Tables, NodesAndRegions, Regions, MissilesInSightFromOthers}) ->
   RadarsTable = maps:get(rt, Tables, error),
-  io:format("Radar ~p at ~p status: ~p~n", [Ref, Position, Status]),
+  %%io:format("Radar ~p at ~p status: ~p~n", [Ref, Position, Status]),
   ets:insert(RadarsTable, {Ref, {Status, Position}}),
   {noreply, {Tables, NodesAndRegions, Regions, MissilesInSightFromOthers}};
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PROPERTY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -322,8 +322,6 @@ handle_call({updateStatus, antimissile, Ref, {Velocity, {Px, Py}, Angle}}, _From
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CALLS  And casts of graphic%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
 
 filter(NewExplosions, MAX_FRAMES) ->
   lists:filter(fun({_Pos, Counter}) -> Counter < MAX_FRAMES end, NewExplosions).

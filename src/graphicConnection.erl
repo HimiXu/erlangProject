@@ -12,13 +12,13 @@
 %% API
 -export([init/1]).
 
-
-init([Node1, Node2, Node3, Node4]) ->                 %%TODO: see what kind of information of the Nodes server you need
+%initial the graphic  Connection
+init([Node1, Node2, Node3, Node4]) ->
   ChangeSettingsControllerPid = spawn_link(fun() ->
     changeSettingsControllerPid([{1, Node1}, {2, Node2}, {3, Node3}, {4, Node4}], {}) end),
 
-  register(graphicConnectionPID, ChangeSettingsControllerPid), %TODO: maybe we will register it  as global
-  timer:sleep(1000), %%TODO: see how much time is needed for the unit to be ready.
+  register(graphicConnectionPID, ChangeSettingsControllerPid),
+  timer:sleep(1000),
   ReceiverPID = spawn_link(fun() -> sendingPacketsController(
     [{a, Node1},
       {b, Node2},
@@ -29,10 +29,8 @@ init([Node1, Node2, Node3, Node4]) ->                 %%TODO: see what kind of i
   spawn_link(fun F() -> timer:sleep(20), ReceiverPID ! tick, F() end),
   {ok, self()}.
 
-
+%A process that control the send of packets to the graphic unit
 sendingPacketsController(NodesAndRegions) ->
-  %% send nodes and regions,
-
   %% get data from servers
   ReceiverPID = self(),
   NewNodesAndRegions =
@@ -52,6 +50,7 @@ sendingPacketsController(NodesAndRegions) ->
   end,
   sendingPacketsController(NewNodesAndRegions).
 
+%this function ask for data update from the Node_Server, and send it to the graphic unit
 getQuarterDataAndSend({Region, Node, NodesAndRegions}, ReceiverPID) ->
   Data =
     try
@@ -79,7 +78,8 @@ getNodes(NewNodesAndRegions, Size) ->
   end.
 
 
-changeSettingsControllerPid(Nodes, CurrentSettings) -> %%TODO: set the connection to server and to graphic when is possible
+%this function gets an update of the simulator settings from buttons and then send it to the nodes servers
+changeSettingsControllerPid(Nodes, CurrentSettings) ->
   NewSettings =
     receive
       {restart} ->
