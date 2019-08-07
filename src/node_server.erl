@@ -65,6 +65,9 @@ init({Node1, Node2, Node3, Node4, Region}) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+handle_cast({updateSetting, {}}, {Tables, NodesAndRegions, Regions, MissilesInSightFromOthers}) ->
+  {noreply, {Tables, NodesAndRegions, Regions, MissilesInSightFromOthers}};
+
 handle_cast({updateSetting, {0, {missilesSpeed, MissilesSpeedSlider}, {missilesQuantity, MissilesQuantitySlider}, {gravity, GravitySlider},
   {radarError, RadarErrorSlider}, {radarRange, RadarRangeSlider}, {radarRefreshDelay, RadarRefreshDelay}}}, {Tables, NodesAndRegions, Regions, MissilesInSightFromOthers}) ->
   lists:foreach(fun(Region) ->
@@ -80,15 +83,19 @@ handle_cast({updateSetting, {1, {missilesSpeed, MissilesSpeedSlider}, {missilesQ
   {noreply, {Tables, NodesAndRegions, Regions, MissilesInSightFromOthers}};
 
 handle_cast({restart}, {Tables, NodesAndRegions, Regions, MissilesInSightFromOthers}) ->
-  io:format("Got restart ~n", []),
-  %%TODO: add restart
+  Cities = ets:tab2list(maps:get(ct, Tables)),
+  lists:foreach(fun({City, {Status, Position}}) ->
+    if Status =/= alive -> city:start_link({Position, City}); true -> noen end end, Cities),
+%%  lists:foreach(fun(Region) -> script:startCities(Region) end, Regions),
   {noreply, {Tables, NodesAndRegions, Regions, MissilesInSightFromOthers}};
 
 handle_cast({launch, Launcher, Target}, {Tables, NodesAndRegions, Regions, MissilesInSightFromOthers}) ->
   [NodeResp] =
     case Launcher of
       1 -> [Node || {Region, Node} <- NodesAndRegions, Region =:= d];
-      2 -> [Node || {Region, Node} <- NodesAndRegions, Region =:= c]
+      2 -> [Node || {Region, Node} <- NodesAndRegions, Region =:= c];
+      3 -> [Node || {Region, Node} <- NodesAndRegions, Region =:= d];
+      4 -> [Node || {Region, Node} <- NodesAndRegions, Region =:= c]
     end,
   if
     NodeResp =:= node() -> launcher:launch(Launcher, Target);
@@ -208,7 +215,7 @@ handle_call({update, RegionRequested, NodesAndRegionsNew}, _From, {Tables, _Node
     [{{X, Y}, Counter} || {{X, Y}, Counter} <- maps:get(interceptions, Tables, error),
       lists:member({{round(X), round(Y)}, Counter}, Interceptions) =:= false],
   Packet = {Launchers, Radars, Cities, AntiMissiles, Missiles, Interceptions, Explosions},
-  {reply, Packet, {Tables#{explosions => filter(NewExplosions,MAX_FRAMES), interceptions => filter(NewInterceptions,MAX_FRAMES)}, NodesAndRegionsNew, Regions, MissilesInSightFromOthers}};
+  {reply, Packet, {Tables#{explosions => filter(NewExplosions, MAX_FRAMES), interceptions => filter(NewInterceptions, MAX_FRAMES)}, NodesAndRegionsNew, Regions, MissilesInSightFromOthers}};
 
 handle_call(getMissiles, _From, {Tables, NodesAndRegions, Regions, MissilesInSightFromOthers}) ->
   MissilesTable = maps:get(mt, Tables, error),
@@ -217,34 +224,25 @@ handle_call(getMissiles, _From, {Tables, NodesAndRegions, Regions, MissilesInSig
     {Ref, Px, Py} end, Missiles), {Tables, NodesAndRegions, Regions, MissilesInSightFromOthers}};
 
 handle_call({getMissiles, sight, {PyTop, PyMid, PyBot, PxMid, Width}}, _From, {Tables, NodesAndRegions, Regions, MissilesInSightFromOthers}) ->
-  MissilesTable = maps:get(mt, Tables, error),
-  Missiles = ets:tab2list(MissilesTable),
-  MissilesData = lists:map(fun({Ref, {falling, Velocity, Position, _Angle}}) ->
-    {Velocity, Position, Ref} end, Missiles),
-  MissilesInSight = (lists:filter(fun({_Velocity, {Px, Py}, _Ref}) ->
-    ((Py > PyTop) and (Py =< PyMid) and (Px < PxMid + Width / 2) and (Px > PxMid - Width / 2))
+  MissilesInSight = qlc:e(qlc:q([{Velocity, {Px, Py}, Ref} || {Ref, {falling, Velocity, {Px, Py}, _Angle}} <- ets:table(maps:get(mt, Tables, error))
+    , ((Py > PyTop) and (Py =< PyMid) and (Px < PxMid + Width / 2) and (Px > PxMid - Width / 2))
       or
       ((Py >= PyMid) and (Py < PyBot) and
         (((Px < PxMid) and (Px > PxMid - Width / 2) and (Py - PyBot < Px - PxMid))
           or
-          ((Px >= PxMid) and (Px < PxMid + Width / 2) and (Py - PyBot < - Px + PxMid))))
-                                  end, MissilesData)),
+          ((Px >= PxMid) and (Px < PxMid + Width / 2) and (Py - PyBot < - Px + PxMid))))])),
   {reply, MissilesInSight, {Tables, NodesAndRegions, Regions, MissilesInSightFromOthers}};
 
 handle_call({getMissiles, {PyTop, PyMid, PyBot, PxMid, Width}}, _From, {Tables, NodesAndRegions, Regions, MissilesInSightFromOthers}) ->
-  MissilesTable = maps:get(mt, Tables, error),
-  Missiles = ets:tab2list(MissilesTable),
+
   OtherNodes = [Node || {_Region, Node} <- NodesAndRegions, Node =/= node()],
-  MissilesData = lists:map(fun({Ref, {falling, Velocity, Position, _Angle}}) ->
-    {Velocity, Position, Ref} end, Missiles),
-  MissilesInSight = (lists:filter(fun({_Velocity, {Px, Py}, _Ref}) ->
-    ((Py > PyTop) and (Py =< PyMid) and (Px < PxMid + Width / 2) and (Px > PxMid - Width / 2))
+  MissilesInSight = qlc:e(qlc:q([{Velocity, {Px, Py}, Ref} || {Ref, {falling, Velocity, {Px, Py}, _Angle}} <- ets:table(maps:get(mt, Tables, error))
+    , ((Py > PyTop) and (Py =< PyMid) and (Px < PxMid + Width / 2) and (Px > PxMid - Width / 2))
       or
       ((Py >= PyMid) and (Py < PyBot) and
         (((Px < PxMid) and (Px > PxMid - Width / 2) and (Py - PyBot < Px - PxMid))
           or
-          ((Px >= PxMid) and (Px < PxMid + Width / 2) and (Py - PyBot < - Px + PxMid))))
-                                  end, MissilesData)),
+          ((Px >= PxMid) and (Px < PxMid + Width / 2) and (Py - PyBot < - Px + PxMid))))])),
   spawn(fun() ->
     MissilesCaught =
       lists:foldl(fun(Node, AllMissiles) ->
@@ -328,4 +326,4 @@ handle_call({updateStatus, antimissile, Ref, {Velocity, {Px, Py}, Angle}}, _From
 
 
 filter(NewExplosions, MAX_FRAMES) ->
-  lists:filter(fun({_Pos,Counter}) -> Counter < MAX_FRAMES end, NewExplosions ).
+  lists:filter(fun({_Pos, Counter}) -> Counter < MAX_FRAMES end, NewExplosions).

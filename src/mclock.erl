@@ -12,7 +12,7 @@
 
 %% API
 -export([start_link/2]).
--export([tick/1, register/2, unregister/2, generateMissile/3, generateMissile/4, generateAntiMissile/3, setMod/1]).
+-export([tick/1, register/2, unregister/2, generateMissile/3, generateMissile/4, generateAntiMissile/3, setMod/1, stop/0]).
 -export([init/1, callback_mode/0, terminate/3]).
 -export([idle/3]).
 
@@ -31,6 +31,9 @@ tick(TimeDiff) ->
 register(Type, Ref) ->
   gen_statem:cast(mclock, {register, Type, Ref}).
 
+stop() ->
+  gen_statem:stop(mclock).
+
 unregister(Type, Ref) ->
   gen_statem:cast(mclock, {unregister, Type, Ref}).
 
@@ -42,10 +45,10 @@ init({ClockPID, TimeDiff, Mod, MissileScale, MissileSpeed, GRAVITY}) ->
 callback_mode() ->
   state_functions.
 idle(cast, {tick, TimeDiff}, {ClockPID, TimeDiff, Mod, Missiles, AntiMissiles, MissileScale, MissileSpeed, GRAVITY}) ->
-  CoinFlip = rand:uniform(7000),
+  CoinFlip = rand:uniform(3000),
   if
-    (CoinFlip > 6990 - (MissileScale * 9)) and (Mod > 0) and (Mod < 3) -> generateMissile(Mod, MissileSpeed, GRAVITY);
-    (CoinFlip > 6990 - (MissileScale * 9)) and (Mod > 0) and (Mod =:= 3) ->
+    (CoinFlip > 2990 - (MissileScale * 9)) and (Mod > 0) and (Mod < 3) -> generateMissile(Mod, MissileSpeed, GRAVITY);
+    (CoinFlip > 2990 - (MissileScale * 9)) and (Mod > 0) and (Mod =:= 3) ->
       generateMissile(Mod, MissileSpeed, GRAVITY), generateMissile(Mod, MissileSpeed, GRAVITY);
     true -> none
   end,
@@ -91,8 +94,8 @@ generateMissile(Mod, MissileSpeed, GravityScale) ->
            3 -> Both
          end,
   if
-    PosX < 600 -> VelX = rand:uniform(MissileSpeed);
-    true -> VelX = (-1) * rand:uniform(MissileSpeed)
+    PosX < 600 -> VelX = rand:uniform(MissileSpeed) / 5;
+    true -> VelX = (-1) * rand:uniform(MissileSpeed) / 5
   end,
   generateMissile(make_ref(), {0, GRAVITY}, {VelX, VelY}, {PosX, -10}).
 
@@ -102,7 +105,7 @@ generateMissile(Mod, MissileSpeed, GravityScale) ->
 generateMissile(Ref, Acceleration, Velocity, Position) ->
   missile:start_link({{Acceleration, Velocity, Position}, {[
     {budapest, 919, 755}, {newYork, 370, 494}, {paris, 1079, 688}, {jerusalem, 550, 778}, {moscow, 1078, 574},
-    {london, 431, 637}, {rome, 725, 684}, {stockholm, 925, 646}, {sydney, 127, 595}]
+    {london, 431, 637}, {rome, 725, 684}, {stockholm, 925, 646}, {sydney, 127, 595}, {washington, 483, 425}]
     , [], [], 800}, Ref}).
 
 generateAntiMissile(Ref, Velocity, Position) ->

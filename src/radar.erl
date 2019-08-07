@@ -45,10 +45,10 @@ init({Position, MissileTimeDiff, Launchers, Ref}) ->
   RadarRangeSlider = 5,
   RadarRefreshDelayInit = 5,
   GravitySlider = 5,
-  TimerPID = spawn_link(radar,radarTimer,[RadarRefreshDelayInit,Ref]),
+  TimerPID = spawn_link(radar, radarTimer, [RadarRefreshDelayInit, Ref]),
   node_server:updateStatus({radar, Ref, {alive, Position}}),
   Sight = calcSight(RadarRangeSlider, Position),
-  {ok, idle, {TimerPID, Position, Sight, MissileTimeDiff, Launchers, Ref, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelayInit, GravitySlider, []}}.
+  {ok, idle, {TimerPID, Position, Sight, MissileTimeDiff, Launchers, Ref, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelayInit, GravitySlider, #{}}}.
 
 callback_mode() ->
   state_functions.
@@ -60,14 +60,19 @@ idle(cast, {settingUpdate, NewRadarErrorSlider, NewRadarRangeSlider, NewRadarRef
 idle(cast, tick, {TimerPID, Position, Sight, MissileTimeDiff, Launchers, Ref, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, GravitySlider, Missiles}) ->
   TimerPID ! RadarRefreshDelay,
   MissilesInSight = node_server:getMissiles(Sight),
-  NewMissilesInSight = [{Vel, Pos} || {Vel, Pos, MRef} <- MissilesInSight, lists:member(MRef, Missiles) =:= false],
+  NewMissilesInSight = [{Vel, Pos} || {Vel, Pos, MRef} <- MissilesInSight, maps:is_key(MRef, Missiles) =:= false],
+  NewMissiles = lists:foldl(fun({_Vel, _Pos, MRef}, Map) -> Counter = maps:get(MRef, Map, new),
+    if
+      Counter =:= new -> Map#{MRef => 0};
+      Counter > 1000 -> maps:remove(MRef, Map);
+      true -> Map#{MRef => Counter + 1}
+    end end, Missiles, MissilesInSight),
   LaunchTargets = calcTargets(NewMissilesInSight, MissileTimeDiff, [], RadarErrorSlider, GravitySlider),
   lists:foreach(fun(Target) -> Launcher = lists:nth(rand:uniform(length(Launchers)), Launchers),
     node_server:launch(Launcher, Target) end, LaunchTargets),
-  NewMissiles = [MRef || {_V, _P, MRef} <- MissilesInSight],
-  {next_state, idle, {TimerPID,Position, Sight, MissileTimeDiff, Launchers, Ref, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, GravitySlider, NewMissiles}};
+  {next_state, idle, {TimerPID, Position, Sight, MissileTimeDiff, Launchers, Ref, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, GravitySlider, NewMissiles}};
 
-idle(cast, hit, {_TimerPID,Position, _Sight, _MissileTimeDiff, _Launchers, Ref, _RadarErrorSlider, _RadarRangeSlider, _RadarRefreshDelay, _GravitySlider, _Missiles}) ->
+idle(cast, hit, {_TimerPID, Position, _Sight, _MissileTimeDiff, _Launchers, Ref, _RadarErrorSlider, _RadarRangeSlider, _RadarRefreshDelay, _GravitySlider, _Missiles}) ->
   node_server:updateStatus({launcher, Ref, {destroyed, Position}}),
   {stop, normal}.
 
@@ -79,19 +84,19 @@ calcTargets([{{Vx, Vy}, {Px, Py}} | Missiles], MissileTimeDiff, Targets, RadarEr
   DeltaT = lists:nth(rand:uniform(20), lists:seq(13, 32)) * MissileTimeDiff,
   %% TODO add define
   GRAVITY = GravitySlider * 0.01,
-  ErrorX = (rand:uniform(75 + RadarErrorSlider * 5) - 50) / 200,
-  ErrorY = (rand:uniform(75 + RadarErrorSlider * 5) - 50) / 200,
+  ErrorX = (rand:uniform(75 + RadarErrorSlider * 5) - 50) / 40,
+  ErrorY = (rand:uniform(75 + RadarErrorSlider * 5) - 50) / 40,
   PxT = Px + (Vx + ErrorX) * DeltaT,
   PyT = Py + (Vy + ErrorY) * DeltaT + (GRAVITY * DeltaT * DeltaT) / 2,
   calcTargets(Missiles, MissileTimeDiff, [{{PxT, PyT}, DeltaT} | Targets], RadarErrorSlider, GravitySlider).
 
 calcSight(RadarRangeSlider, {Px, Py}) ->
   {Py - 80 * RadarRangeSlider, Py - 50 * RadarRangeSlider, Py, Px, 60 * RadarRangeSlider}.
-radarTimer(RadarRefreshDelay,Ref) ->
+radarTimer(RadarRefreshDelay, Ref) ->
   timer:sleep(round(RadarRefreshDelay)),
   receive
-    RadarRefreshDelayNew -> radar:tick(Ref), radarTimer(RadarRefreshDelayNew,Ref)
+    RadarRefreshDelayNew -> radar:tick(Ref), radarTimer(RadarRefreshDelayNew, Ref)
   after 1 ->
     radar:tick(Ref),
-    radarTimer(RadarRefreshDelay,Ref)
+    radarTimer(RadarRefreshDelay, Ref)
   end.

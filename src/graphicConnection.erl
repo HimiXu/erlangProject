@@ -15,40 +15,43 @@
 
 init([Node1, Node2, Node3, Node4]) ->                 %%TODO: see what kind of information of the Nodes server you need
   ChangeSettingsControllerPid = spawn_link(fun() ->
-    changeSettingsControllerPid([{1, Node1}, {2, Node2}, {3, Node3}, {4, Node4}]) end),
+    changeSettingsControllerPid([{1, Node1}, {2, Node2}, {3, Node3}, {4, Node4}], {}) end),
   register(graphicConnectionPID, ChangeSettingsControllerPid), %TODO: maybe we will register it  as global
   timer:sleep(1000), %%TODO: see how much time is needed for the unit to be ready.
   ReceiverPID = spawn_link(fun() -> sendingPacketsController(
     [{a, Node1},
       {b, Node2},
       {c, Node3},
-      {d, Node4}]) end), %Sending Packets Controller
+      {d, Node4}], 0) end), %Sending Packets Controller
   %% set refresh rate
   spawn_link(fun F() -> timer:sleep(20), ReceiverPID ! tick, F() end),
   {ok, self()}.
 
 
-sendingPacketsController(NodesAndRegions) ->
+sendingPacketsController(NodesAndRegions, Counter) ->
   %% send nodes and regions,
-  nodeUpdatePid ! NodesAndRegions,
+  if Counter =:= 0 ->
+    nodeUpdatePid ! NodesAndRegions;
+    true -> none
+  end,
   %% get data from servers
   ReceiverPID = self(),
   NewNodesAndRegions =
     receive
-    %% receive order - send all the nodes update signal
+%% receive order - send all the nodes update signal
       tick -> lists:foreach(fun({Region, Node}) ->
         spawn(fun() -> getQuarterDataAndSend({Region, Node, NodesAndRegions}, ReceiverPID) end) end, NodesAndRegions),
         getNodes([], 0)
     after 1000 ->
       NodesAndRegions
     end,
-  %% get data on rising node
+%% get data on rising node
   receive
     {nodeUp, Node} -> backup_servers:nodeUp(Node)
   after 1 ->
     continue
   end,
-  sendingPacketsController(NewNodesAndRegions).
+  sendingPacketsController(NewNodesAndRegions, (Counter + 1) rem 50).
 
 getQuarterDataAndSend({Region, Node, NodesAndRegions}, ReceiverPID) ->
   Data =
@@ -58,7 +61,9 @@ getQuarterDataAndSend({Region, Node, NodesAndRegions}, ReceiverPID) ->
     end,
   {PacketData, NewNode} =
     if
-      Data =:= crash -> {{[], [], [], [], [], [], []}, backup_servers:nodeDown(Region, Node)};
+      Data =:= crash -> Reply = backup_servers:nodeDown(Region, Node),
+        graphicConnectionPID ! apply,
+        {{[], [], [], [], [], [], []}, Reply};
       true -> backup_servers:stash(Region, Data),
         {filter(Data), Node}
     end,
@@ -73,22 +78,35 @@ getNodes(NewNodesAndRegions, Size) ->
   end.
 
 
-changeSettingsControllerPid(Nodes) -> %%TODO: set the connection to server and to graphic when is possible
-  receive
-    {restart} ->
-      lists:foreach(fun({NodeNum, Node}) -> try gen_server:cast({node_server, Node}, {restart}) of
-                                              ok -> ok
-                                            catch _:_ ->
-        io:format("Couldn't restart - node ~p is node exist~n", [NodeNum])
-                                            end end, Nodes);
-    Settings ->
-      lists:foreach(fun({NodeNum, Node}) -> try gen_server:cast({node_server, Node}, {updateSetting, Settings}) of
-                                              ok -> ok
-                                            catch _:_ ->
-        io:format("Couldn't update Setting - node ~p is node exist~n", [NodeNum])
-                                            end end, Nodes)
-  end,
-  changeSettingsControllerPid(Nodes).
+changeSettingsControllerPid(Nodes, CurrentSettings) -> %%TODO: set the connection to server and to graphic when is possible
+  NewSettings =
+    receive
+      {restart} ->
+        lists:foreach(fun({NodeNum, Node}) ->
+          try gen_server:cast({node_server, Node}, {restart}) of
+            ok -> ok
+          catch _:_ ->
+            io:format("Couldn't restart - node ~p is node exist~n", [NodeNum])
+          end end, Nodes),
+        CurrentSettings;
+      apply ->
+        lists:foreach(fun({NodeNum, Node}) ->
+          try gen_server:cast({node_server, Node}, {updateSetting, CurrentSettings}) of
+            ok -> ok
+          catch _:_ ->
+            io:format("Couldn't update Setting - node ~p is node exist~n", [NodeNum])
+          end end, Nodes),
+        CurrentSettings;
+      Settings ->
+        lists:foreach(fun({NodeNum, Node}) ->
+          try gen_server:cast({node_server, Node}, {updateSetting, Settings}) of
+            ok -> ok
+          catch _:_ ->
+            io:format("Couldn't update Setting - node ~p is node exist~n", [NodeNum])
+          end end, Nodes),
+        Settings
+    end,
+  changeSettingsControllerPid(Nodes, NewSettings).
 
 filter({Launchers, Radars, Cities, AntiMissiles, Missiles, Interceptions, Explosions}) ->
   FilteredLaunchers = lists:map(fun({Name, Status, _Position}) -> {Name, Status} end, Launchers),

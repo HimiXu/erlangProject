@@ -41,7 +41,7 @@ init([ServerInfo]) ->
   RadarsImages=loadRadarsImages(),
   LaunchersImages=loadLaunchersImages(),
   spawn_link(fun()-> draw_buttons(Panel, WxEnv, ServerInfo) end),
-  spawn_link(fun()-> nodesWindow() end),
+  spawn_link(fun()-> nodesWindow(Panel, WxEnv) end),
   wxFrame:show(Frame),
   wxPanel:connect(Canvas, paint, []),
   Background =wxImage:new("include/worldBackground.png"), %background
@@ -73,13 +73,13 @@ packetsDeliver(cast, PacketData, Data) ->
     end,
   draw(PacketData,NewData),
   NewNumOfPacketsDelivered=maps:get(numOfPacketsDelivered, NewData),
-    if
-      NewNumOfPacketsDelivered =:= 4 ->
-        finishDrawing(NewData),
-        {keep_state, NewData#{numOfPacketsDelivered := 0}};
-      true ->
-        {keep_state, NewData}
-    end.
+  if
+    NewNumOfPacketsDelivered =:= 4 ->
+      finishDrawing(NewData),
+      {keep_state, NewData#{numOfPacketsDelivered := 0}};
+    true ->
+      {keep_state, NewData}
+  end.
 
 
 
@@ -263,38 +263,28 @@ loop(ServerInfo, MissilesSpeedSlider, MissilesQuantitySlider, GravitySlider, Rad
   loop(ServerInfo, MissilesSpeedSlider, MissilesQuantitySlider, GravitySlider, RadarErrorSlider, RadarRangeSlider, RadarRefreshDelay, ModeRadioBox).
 
 
-nodesWindow() ->
+nodesWindow(Panel, WxEnv) ->
   register(nodeUpdatePid, self()),
-  wx:new(),
-  Frame = wxFrame:new(wx:null(), -1, "Nodes", [{size,{405, 207}}]),
-  Panel  = wxPanel:new(Frame),
-  Canvas = wxPanel:new(Panel, [{size, {405, 207}}]),
-  wxPanel:connect(Canvas, paint, []),
-  wxFrame:show(Frame),
-  ClientDC = wxClientDC:new(Canvas),
-  BufferDC = wxBufferedDC:new(ClientDC),
-  wxDC:drawBitmap(BufferDC, wxBitmap:new(wxImage:new("include/NodesBackground.png")) , {0,0}),
-  T1 = wxStaticText:new(Canvas, 101, "Not set", [{pos, {15, 40}}, {size, {175, 20}}] ),
-  T2 = wxStaticText:new(Canvas, 103, "Not set", [{pos, {215, 40}}, {size, {175, 20}}] ),
-  T3 = wxStaticText:new(Canvas, 102, "Not set", [{pos, {15, 110}}, {size, {175, 20}}] ),
-  T4 = wxStaticText:new(Canvas, 104, "Not set", [{pos, {215, 110}}, {size, {175, 20}}] ),
-  wxBufferedDC:destroy(BufferDC),
-  wxClientDC:destroy(ClientDC),
-  drawNodesLoop(Canvas, T1, T2, T3, T4).
+  wx:set_env(WxEnv),
+  T1 = wxStaticText:new(Panel, 101, "Not set", [{pos, {840, 800}}, {size, {175, 20}}] ),
+  T2 = wxStaticText:new(Panel, 103, "Not set", [{pos, {1015, 800}}, {size, {175, 20}}] ),
+  T3 = wxStaticText:new(Panel, 102, "Not set", [{pos, {840, 820}}, {size, {175, 20}}] ),
+  T4 = wxStaticText:new(Panel, 104, "Not set", [{pos, {1015, 820}}, {size, {175, 20}}] ),
+  drawNodesLoop(Panel,T1, T2, T3, T4).
 
 
 
-drawNodesLoop(Canvas, T1, T2, T3, T4) ->
+drawNodesLoop(Panel,T1, T2, T3, T4) ->
+  {T1N,T2N,T3N,T4N} =
   receive
     [{a, Node1}, {b, Node2}, {c, Node3}, {d, Node4}] ->
-      ClientDC = wxClientDC:new(Canvas),
-      BufferDC = wxBufferedDC:new(ClientDC),
-      wxDC:drawBitmap(BufferDC, wxBitmap:new(wxImage:new("include/NodesBackground.png")) , {0,0}),
-      wxStaticText:setLabel(T1, atom_to_list(Node1)),
-      wxStaticText:setLabel(T2, atom_to_list(Node2)),
-      wxStaticText:setLabel(T3, atom_to_list(Node3)),
-      wxStaticText:setLabel(T4, atom_to_list(Node4)),
-      wxBufferedDC:destroy(BufferDC),
-      wxClientDC:destroy(ClientDC)
+      wxStaticText:destroy(T1),
+      wxStaticText:destroy(T2),
+      wxStaticText:destroy(T3),
+      wxStaticText:destroy(T4),
+      {wxStaticText:new(Panel, 101, atom_to_list(Node1), [{pos, {840, 800}}, {size, {175, 20}}] ),
+      wxStaticText:new(Panel, 103, atom_to_list(Node2), [{pos, {1015, 800}}, {size, {175, 20}}] ),
+      wxStaticText:new(Panel, 102, atom_to_list(Node3), [{pos, {840, 820}}, {size, {175, 20}}] ),
+      wxStaticText:new(Panel, 104, atom_to_list(Node4), [{pos, {1015, 820}}, {size, {175, 20}}] )}
   end,
-  drawNodesLoop(Canvas, T1, T2, T3, T4).
+  drawNodesLoop(Panel,T1N, T2N, T3N, T4N).
